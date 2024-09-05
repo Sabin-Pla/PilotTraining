@@ -1,0 +1,36 @@
+.game-selector > div {
+	background-color: #f1f1f1;
+	width: 100px;
+	margin: 10px;
+	text-align: center;
+	line-height: 75px;
+	font-size: 30px;
+	text-overflow: clip;
+	overflow: hidden;
+	min-width: 0px;
+}
+
+.game-selector {
+	min-width: 0;
+	display: flex;
+	flex-wrap: wrap;
+	text-overflow: clip;
+	background-color: DodgerBlue;
+}
+
+.main-container {
+	max-width: 80%;
+	margin: auto;
+}
+
+.options-panel {
+
+}
+
+.options-segment {
+
+}
+.options-segment > input {
+	display: block;
+	float: right;
+}

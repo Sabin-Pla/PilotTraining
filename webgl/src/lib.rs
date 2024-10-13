@@ -1,16 +1,77 @@
 use wasm_bindgen::prelude::*;
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
+use web_sys::*;
+use std::cell::RefCell;
+use std::rc::Rc;
+
+fn get_viewport_dim(window: &Window) -> (u32, u32) {
+    let width = window.outer_width().unwrap().as_f64().unwrap() * 0.8;
+    let height = window.outer_height().unwrap().as_f64().unwrap() * 0.8;
+    (width as u32, height as u32)
+}
+
+fn handle_resize( 
+        canvas: Rc<RefCell<HtmlCanvasElement>>,
+        context: Rc<RefCell<WebGl2RenderingContext>>,
+        window: Rc<RefCell<Window>>,
+        vert_count: i32) {
+    let window = window.borrow_mut();
+    let canvas = canvas.borrow_mut();
+    let context = &context.borrow_mut();
+    let (width, height) = get_viewport_dim(&*window);
+    canvas.set_width(width);
+    canvas.set_height(height);
+    context.viewport(0, 0,  
+        canvas.width().try_into().unwrap(),
+        canvas.height().try_into().unwrap());
+    draw(context, vert_count);
+
+}
+
+
+// https://rustwasm.github.io/docs/wasm-bindgen/examples/paint.html
 
 #[wasm_bindgen(start)]
 fn start() -> Result<(), JsValue> {
-    let document = web_sys::window().unwrap().document().unwrap();
-    let canvas = document.get_element_by_id("canvas").unwrap();
-    let canvas: web_sys::HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
+    let window = web_sys::window().expect("Failed to start WASM: window()");
+    let window_cell = Rc::new(RefCell::new(window));
+    let window = window_cell.clone();
+    let window = window.borrow_mut();
+    let document = window.document().unwrap();
 
+   // let body = document.get_element_by_id("body").unwrap();
+    //let mut body: HtmlElement = body.dyn_into::<web_sys::HtmlElement>()?;
+
+    //println!("{:?}", &body);
+    let canvas = document.get_element_by_id("canvas").unwrap();
+    let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>()?;
+    let mut canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
+
+    let (width, height) = get_viewport_dim(&*window);
+    canvas.set_width(width);
+    canvas.set_height(height);
+
+    body.style().set_property("width", "100%")?;
+    body.style().set_property("margin", "0px")?;
+    canvas.style().set_property("position", "relative")?;
+    canvas.style().set_property("margin", "auto")?;
+    canvas.style().set_property("max-width", "80%")?;
+    canvas.style().set_property("height", "100%")?;
+    canvas.style().set_property("display", "block")?;
+    canvas.style().set_property("aspect-ratio", "1 / 1")?;
+
+    let canvas_cell = Rc::new(RefCell::new(canvas));
+    let canvas = canvas_cell.clone();
+    let canvas = canvas.borrow_mut();
     let context = canvas
         .get_context("webgl2")?
         .unwrap()
         .dyn_into::<WebGl2RenderingContext>()?;
+    let context_cell = Rc::new(RefCell::new(context));
+    let context = context_cell.clone();
+    let context = &context.borrow_mut();
+
+
 
     let vert_shader = compile_shader(
         &context,
@@ -39,17 +100,26 @@ fn start() -> Result<(), JsValue> {
         }
         "##,
     )?;
+
     let program = link_program(&context, &vert_shader, &frag_shader)?;
     context.use_program(Some(&program));
 
-    let vertices: [f32; 9] = [
+    let vertices: [f32; 18] = [
         -1.0, -1.0, 0.0, 
-        0.7, -0.7, 0.0, 
-        0.0, 0.7, 0.0];
+        1.0, -0.21, 0.0, 
+        0.0, 0.7, 0.0,
+
+         -0.2, -1.0, 0.0, 
+        0.1, -0.21, 0.0, 
+        0.7, 0.0, 0.0,
+
+        ];
+
 
     let position_attribute_location = context.get_attrib_location(&program, "position");
     let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
     context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
+
 
     // Note that `Float32Array::view` is somewhat dangerous (hence the
     // `unsafe`!). This is creating a raw view into our module's
@@ -68,7 +138,6 @@ fn start() -> Result<(), JsValue> {
             WebGl2RenderingContext::STATIC_DRAW,
         );
     }
-
     let vao = context
         .create_vertex_array()
         .ok_or("Could not create vertex array object")?;
@@ -82,13 +151,26 @@ fn start() -> Result<(), JsValue> {
         0,
         0,
     );
+
     context.enable_vertex_attrib_array(position_attribute_location as u32);
 
     context.bind_vertex_array(Some(&vao));
 
-    let vert_count = (vertices.len() / 3) as i32;
-    draw(&context, vert_count);
 
+
+    let vert_count = (vertices.len() / 3) as i32;
+    draw(&(*context), vert_count);
+
+    let resize_handler = Closure::<dyn FnMut()>::new(move || { 
+        handle_resize(
+            canvas_cell.clone(),
+            context_cell.clone(),
+            window_cell.clone(),
+            vert_count)
+        }
+    );
+    //window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
+    resize_handler.forget();
     Ok(())
 }
 
@@ -139,8 +221,7 @@ pub fn link_program(
     if context
         .get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS)
         .as_bool()
-        .unwrap_or(false)
-    {
+        .unwrap_or(false) {
         Ok(program)
     } else {
         Err(context

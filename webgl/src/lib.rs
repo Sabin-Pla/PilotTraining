@@ -4,6 +4,12 @@ use web_sys::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
+#[wasm_bindgen]
+extern "C" {
+    fn alert(s: &str);
+}
+
+
 fn get_viewport_dim(window: &Window) -> (u32, u32) {
     let width = window.outer_width().unwrap().as_f64().unwrap() * 0.8;
     let height = window.outer_height().unwrap().as_f64().unwrap() * 0.8;
@@ -81,7 +87,6 @@ fn start() -> Result<(), JsValue> {
         in vec4 position;
 
         void main() {
-        
             gl_Position = position;
         }
         "##,
@@ -93,6 +98,7 @@ fn start() -> Result<(), JsValue> {
         r##"#version 300 es
     
         precision highp float;
+        in vec4 position;
         out vec4 outColor;
         
         void main() {
@@ -112,7 +118,6 @@ fn start() -> Result<(), JsValue> {
          -0.2, -1.0, 0.0, 
         0.1, -0.21, 0.0, 
         0.7, 0.0, 0.0,
-
         ];
 
 
@@ -143,6 +148,8 @@ fn start() -> Result<(), JsValue> {
         .ok_or("Could not create vertex array object")?;
     context.bind_vertex_array(Some(&vao));
 
+
+
     context.vertex_attrib_pointer_with_i32(
         position_attribute_location as u32,
         3,
@@ -154,9 +161,21 @@ fn start() -> Result<(), JsValue> {
 
     context.enable_vertex_attrib_array(position_attribute_location as u32);
 
-    context.bind_vertex_array(Some(&vao));
 
 
+    let index_buffer = context.create_buffer().ok_or("Failed to create buffer")?;
+    context.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
+    let mut indexes = [0 as u32, 1, 2, 3, 4, 5];
+    unsafe {
+        let indexes_js = js_sys::Uint32Array::new_with_length(6);
+        indexes_js.copy_from(&indexes);
+        // alert(&format!("Hello, {:?}!", &indexes_js.to_string()));
+        context.buffer_data_with_array_buffer_view(
+            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
+            &indexes_js,
+            WebGl2RenderingContext::STATIC_DRAW,
+        );
+    }
 
     let vert_count = (vertices.len() / 3) as i32;
     draw(&(*context), vert_count);
@@ -178,7 +197,12 @@ fn draw(context: &WebGl2RenderingContext, vert_count: i32) {
     context.clear_color(0.0, 0.0, 0.0, 1.0);
     context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-    context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, vert_count);
+    //context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, vert_count);
+    context.draw_elements_with_i32(
+        WebGl2RenderingContext::TRIANGLES, 
+        3, 
+        WebGl2RenderingContext::UNSIGNED_INT,
+        0);
 }
 
 pub fn compile_shader(

@@ -85,9 +85,18 @@ fn start() -> Result<(), JsValue> {
         r##"#version 300 es
  
         in vec4 position;
+        in vec4 index;
+        out vec4 pos2;
+
+        uniform CircleCenters {
+            vec2 u_circleCenters[1];
+        };
+        out vec2 center;     // Circle index
 
         void main() {
             gl_Position = position;
+            pos2 = position;
+            center = u_circleCenters[0];     
         }
         "##,
     )?;
@@ -99,10 +108,19 @@ fn start() -> Result<(), JsValue> {
     
         precision highp float;
         in vec4 position;
+        in vec4 index;
+        in vec4 pos2;
         out vec4 outColor;
+        in vec2 center; 
         
         void main() {
-            outColor = vec4(1, 1, 1, 1);
+            if (center[0] == 0.0) {
+                discard;
+            }
+            float dist = distance(pos2.xy, center.xy);
+                if (dist > 0.2)
+                    discard;
+            outColor = vec4(0.2, 1.0, 1.0, 1);
         }
         "##,
     )?;
@@ -110,30 +128,19 @@ fn start() -> Result<(), JsValue> {
     let program = link_program(&context, &vert_shader, &frag_shader)?;
     context.use_program(Some(&program));
 
-    let vertices: [f32; 18] = [
-        -1.0, -1.0, 0.0, 
-        1.0, -0.21, 0.0, 
-        0.0, 0.7, 0.0,
+    let vertices = [
+        -1.0, -1.0, 
+        0.0, -0.3, 
+        -0.3, 0.3,
 
-         -0.2, -1.0, 0.0, 
-        0.1, -0.21, 0.0, 
-        0.7, 0.0, 0.0,
+         -0.2, -1.0, 
+        0.1, -0.21, 
+        0.7, 0.0,
         ];
-
 
     let position_attribute_location = context.get_attrib_location(&program, "position");
     let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
     context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
-
-
-    // Note that `Float32Array::view` is somewhat dangerous (hence the
-    // `unsafe`!). This is creating a raw view into our module's
-    // `WebAssembly.Memory` buffer, but if we allocate more pages for ourself
-    // (aka do a memory allocation in Rust) it'll cause the buffer to change,
-    // causing the `Float32Array` to be invalid.
-    //
-    // As a result, after `Float32Array::view` we have to be very careful not to
-    // do any memory allocations before it's dropped.
     unsafe {
         let positions_array_buf_view = js_sys::Float32Array::view(&vertices);
 
@@ -147,20 +154,15 @@ fn start() -> Result<(), JsValue> {
         .create_vertex_array()
         .ok_or("Could not create vertex array object")?;
     context.bind_vertex_array(Some(&vao));
-
-
-
     context.vertex_attrib_pointer_with_i32(
         position_attribute_location as u32,
-        3,
+        2,
         WebGl2RenderingContext::FLOAT,
         false,
         0,
         0,
     );
-
     context.enable_vertex_attrib_array(position_attribute_location as u32);
-
 
 
     let index_buffer = context.create_buffer().ok_or("Failed to create buffer")?;
@@ -176,6 +178,41 @@ fn start() -> Result<(), JsValue> {
             WebGl2RenderingContext::STATIC_DRAW,
         );
     }
+
+    let mut centroids = vec!();
+    for triangle_verts in vertices.chunks_exact(6) {
+        let (mut x, mut y) = (0.0, 0.0);
+        for point in triangle_verts.chunks_exact(2) {
+            x += point[0];
+            y += point[1];
+        }
+        x /= 3.0;
+        y /= 3.0;
+        centroids.push(x);
+        centroids.push(y);
+    }
+    let centroid_buffer_idx = 1;
+    context.uniform_block_binding(
+        &program, 
+        context.get_uniform_block_index(&program, "CircleCenters"),
+        centroid_buffer_idx);
+    let centroid_buffer = context.create_buffer().ok_or("Failed to create buffer")?;
+    context.bind_buffer(WebGl2RenderingContext::UNIFORM_BUFFER, Some(&centroid_buffer));
+    unsafe {
+        let centroids_js = js_sys::Float32Array::new_with_length(centroids.len() as u32);
+        centroids_js.copy_from(&centroids.as_slice());
+        //alert(&format!("Hello, {:?}!", &centroids_js.to_string()));
+        context.buffer_data_with_array_buffer_view(
+            WebGl2RenderingContext::UNIFORM_BUFFER,
+            &centroids_js,
+            WebGl2RenderingContext::STATIC_DRAW,
+        );
+    }
+    context.bind_buffer_base(
+        WebGl2RenderingContext::UNIFORM_BUFFER,
+        centroid_buffer_idx,
+        Some(&centroid_buffer));
+
 
     let vert_count = (vertices.len() / 3) as i32;
     draw(&(*context), vert_count);

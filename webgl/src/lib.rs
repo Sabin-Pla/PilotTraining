@@ -34,9 +34,6 @@ fn handle_resize(
 
 }
 
-
-// https://rustwasm.github.io/docs/wasm-bindgen/examples/paint.html
-
 #[wasm_bindgen(start)]
 fn start() -> Result<(), JsValue> {
     let window = web_sys::window().expect("Failed to start WASM: window()");
@@ -45,10 +42,6 @@ fn start() -> Result<(), JsValue> {
     let window = window.borrow_mut();
     let document = window.document().unwrap();
 
-   // let body = document.get_element_by_id("body").unwrap();
-    //let mut body: HtmlElement = body.dyn_into::<web_sys::HtmlElement>()?;
-
-    //println!("{:?}", &body);
     let canvas = document.get_element_by_id("canvas").unwrap();
     let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>()?;
     let mut canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
@@ -77,26 +70,27 @@ fn start() -> Result<(), JsValue> {
     let context = context_cell.clone();
     let context = &context.borrow_mut();
 
-
-
     let vert_shader = compile_shader(
         &context,
         WebGl2RenderingContext::VERTEX_SHADER,
         r##"#version 300 es
  
         in vec4 position;
-        in vec4 index;
+        in vec4 indexes;
+        out vec4 index2;
         out vec4 pos2;
 
-        uniform CircleCenters {
-            vec2 u_circleCenters[1];
+        layout (std140) uniform CircleCenters {
+            vec4 u_circleCenters[2];
         };
-        out vec2 center;     // Circle index
+        out vec2 center; // Circle index
 
         void main() {
             gl_Position = position;
             pos2 = position;
-            center = u_circleCenters[0];     
+            int i = int(indexes[0]);
+            center = u_circleCenters[i].xy;     
+            index2 = indexes;
         }
         "##,
     )?;
@@ -108,19 +102,21 @@ fn start() -> Result<(), JsValue> {
     
         precision highp float;
         in vec4 position;
-        in vec4 index;
+        in vec4 index2;
         in vec4 pos2;
         out vec4 outColor;
         in vec2 center; 
         
         void main() {
-            if (center[0] == 0.0) {
-                discard;
-            }
             float dist = distance(pos2.xy, center.xy);
-                if (dist > 0.2)
-                    discard;
-            outColor = vec4(0.2, 1.0, 1.0, 1);
+            if (dist > 0.1) { 
+                float c = 0.2;
+
+                 outColor = vec4(index2.x, index2.y, 0.1, 1);
+            } else {
+                float c = 0.35;
+                 outColor = vec4(c, c, c, 1);
+            }
         }
         "##,
     )?;
@@ -136,7 +132,7 @@ fn start() -> Result<(), JsValue> {
          -0.2, -1.0, 
         0.1, -0.21, 
         0.7, 0.0,
-        ];
+    ];
 
     let position_attribute_location = context.get_attrib_location(&program, "position");
     let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
@@ -156,11 +152,7 @@ fn start() -> Result<(), JsValue> {
     context.bind_vertex_array(Some(&vao));
     context.vertex_attrib_pointer_with_i32(
         position_attribute_location as u32,
-        2,
-        WebGl2RenderingContext::FLOAT,
-        false,
-        0,
-        0,
+        2, WebGl2RenderingContext::FLOAT, false, 0, 0,
     );
     context.enable_vertex_attrib_array(position_attribute_location as u32);
 
@@ -174,10 +166,32 @@ fn start() -> Result<(), JsValue> {
         // alert(&format!("Hello, {:?}!", &indexes_js.to_string()));
         context.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            &indexes_js,
-            WebGl2RenderingContext::STATIC_DRAW,
+            &indexes_js, WebGl2RenderingContext::STATIC_DRAW,
         );
     }
+
+    let index_buffer2 = context.create_buffer().ok_or("Failed to create buffer")?;
+    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&index_buffer2));
+    let mut indexes2 = [0 as u32, 0, 0, 1, 1, 1];
+    unsafe {
+        let indexes_js = js_sys::Uint32Array::new_with_length(6);
+        indexes_js.copy_from(&indexes2);
+        // alert(&format!("Hello, {:?}!", &indexes_js.to_string()));
+        context.buffer_data_with_array_buffer_view(
+            WebGl2RenderingContext::ARRAY_BUFFER,
+            &indexes_js, WebGl2RenderingContext::STATIC_DRAW,
+        );
+    }
+
+    let indexes_attribute_location = context.get_attrib_location(&program, "indexes");
+   context.vertex_attrib_pointer_with_i32(
+        indexes_attribute_location as u32,
+        1, WebGl2RenderingContext::UNSIGNED_INT, false, 0, 0,
+    );
+    context.enable_vertex_attrib_array(indexes_attribute_location as u32);
+
+
+
 
     let mut centroids = vec!();
     for triangle_verts in vertices.chunks_exact(6) {
@@ -186,10 +200,17 @@ fn start() -> Result<(), JsValue> {
             x += point[0];
             y += point[1];
         }
+
         x /= 3.0;
         y /= 3.0;
         centroids.push(x);
         centroids.push(y);
+        // we need to append 2 extra elements because the buffer
+        // must be rounded up to the base alignment of a vec4
+        // https://registry.khronos.org/OpenGL/specs/es/3.0/es_spec_3.0.pdf 
+        // Section 2.12
+        centroids.push(0.0); 
+        centroids.push(0.0);
     }
     let centroid_buffer_idx = 1;
     context.uniform_block_binding(
@@ -201,7 +222,7 @@ fn start() -> Result<(), JsValue> {
     unsafe {
         let centroids_js = js_sys::Float32Array::new_with_length(centroids.len() as u32);
         centroids_js.copy_from(&centroids.as_slice());
-        //alert(&format!("Hello, {:?}!", &centroids_js.to_string()));
+        // alert(&format!("Hello, {:?}!", &centroids_js.to_string()));
         context.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::UNIFORM_BUFFER,
             &centroids_js,
@@ -237,7 +258,7 @@ fn draw(context: &WebGl2RenderingContext, vert_count: i32) {
     //context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, vert_count);
     context.draw_elements_with_i32(
         WebGl2RenderingContext::TRIANGLES, 
-        3, 
+        6, 
         WebGl2RenderingContext::UNSIGNED_INT,
         0);
 }

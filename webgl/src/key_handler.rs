@@ -14,7 +14,10 @@ impl KeyHandler {
 				let program = self.program.clone();
 				let program = program.borrow_mut();
 				match stage_program(&context) {
-					Ok(program) => stage::init(&context, &program),
+					Ok(program) => {
+						context.use_program(Some(&program));
+						stage::init(&context, &program);
+					},
 					Err(err) => alert(&format!("Error loading stage: {}", err))
 				}
 			},

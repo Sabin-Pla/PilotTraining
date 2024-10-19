@@ -12,11 +12,14 @@ wasm-bindgen-test = "0.2"
 [dependencies]
 js-sys = "0.3.70"
 wasm-bindgen = "0.2.93"
+glam = "0.29.0"
 web-sys = { version = "0.3.70", features = [
 	  'Document',
 	  'Element',
+	  'EventTarget',
 	  'HtmlElement',
 	  'HtmlCanvasElement',
+	  'KeyboardEvent',
 	  'WebGlBuffer',
 	  'WebGlVertexArrayObject',
 	  'WebGl2RenderingContext',

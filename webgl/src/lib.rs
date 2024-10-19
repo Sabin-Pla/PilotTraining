@@ -3,12 +3,21 @@ use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
 use web_sys::*;
 use std::cell::RefCell;
 use std::rc::Rc;
+use glam::Mat4;
+
+
+mod key_handler;
+mod webgl_const;
+mod stage;
+
+use key_handler::*;
+use webgl_const::*;
+use stage::*;
 
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
 }
-
 
 fn get_viewport_dim(window: &Window) -> (u32, u32) {
     let width = window.outer_width().unwrap().as_f64().unwrap() * 0.8;
@@ -31,7 +40,6 @@ fn handle_resize(
         canvas.width().try_into().unwrap(),
         canvas.height().try_into().unwrap());
     draw(context, vert_count);
-
 }
 
 #[wasm_bindgen(start)]
@@ -41,6 +49,9 @@ fn start() -> Result<(), JsValue> {
     let window = window_cell.clone();
     let window = window.borrow_mut();
     let document = window.document().unwrap();
+    let document_cell = Rc::new(RefCell::new(document));
+    let document = document_cell.clone();
+    let document = document.borrow_mut();
 
     let canvas = document.get_element_by_id("canvas").unwrap();
     let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>()?;
@@ -59,6 +70,7 @@ fn start() -> Result<(), JsValue> {
     canvas.style().set_property("display", "block")?;
     canvas.style().set_property("aspect-ratio", "1 / 1")?;
 
+    let prespective_proj_mat = Mat4::perspective_rh_gl(90.0, 1.0, 1.0, 100.0);
     let canvas_cell = Rc::new(RefCell::new(canvas));
     let canvas = canvas_cell.clone();
     let canvas = canvas.borrow_mut();
@@ -81,7 +93,7 @@ fn start() -> Result<(), JsValue> {
         out vec4 pos2;
 
         layout (std140) uniform CircleCenters {
-            vec4 u_circleCenters[2];
+            vec4 u_circleCenters[3];
         };
         out vec2 center; // Circle index
 
@@ -111,27 +123,32 @@ fn start() -> Result<(), JsValue> {
             float dist = distance(pos2.xy, center.xy);
             if (dist > 0.1) { 
                 float c = 0.2;
-
-                 outColor = vec4(index2.x, index2.y, 0.1, 1);
+                outColor = vec4(index2.x / 3.0, index2.y / 2.0, 0.1, 1);
             } else {
                 float c = 0.35;
-                 outColor = vec4(c, c, c, 1);
+                outColor = vec4(c, c, c, 1);
             }
         }
         "##,
     )?;
 
     let program = link_program(&context, &vert_shader, &frag_shader)?;
+    let program_cell = Rc::new(RefCell::new(program));
+    let program = program_cell.borrow_mut();
     context.use_program(Some(&program));
 
     let vertices = [
         -1.0, -1.0, 
-        0.0, -0.3, 
-        -0.3, 0.3,
+        -1.0, 0.0, 
+        1.0, 0.0,
 
          -0.2, -1.0, 
         0.1, -0.21, 
         0.7, 0.0,
+
+        0.0, 0.0,
+        1.0, 1.0,
+        0.5, 0.75, 
     ];
 
     let position_attribute_location = context.get_attrib_location(&program, "position");
@@ -159,9 +176,9 @@ fn start() -> Result<(), JsValue> {
 
     let index_buffer = context.create_buffer().ok_or("Failed to create buffer")?;
     context.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
-    let mut indexes = [0 as u32, 1, 2, 3, 4, 5];
+    let mut indexes = [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8];
     unsafe {
-        let indexes_js = js_sys::Uint32Array::new_with_length(6);
+        let indexes_js = js_sys::Uint32Array::new_with_length(9);
         indexes_js.copy_from(&indexes);
         // alert(&format!("Hello, {:?}!", &indexes_js.to_string()));
         context.buffer_data_with_array_buffer_view(
@@ -172,11 +189,10 @@ fn start() -> Result<(), JsValue> {
 
     let index_buffer2 = context.create_buffer().ok_or("Failed to create buffer")?;
     context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&index_buffer2));
-    let mut indexes2 = [0 as u32, 0, 0, 1, 1, 1];
+    let mut indexes2 = [0 as u32, 0, 0, 1, 1, 1, 2, 2, 2];
     unsafe {
-        let indexes_js = js_sys::Uint32Array::new_with_length(6);
+        let indexes_js = js_sys::Uint32Array::new_with_length(9);
         indexes_js.copy_from(&indexes2);
-        // alert(&format!("Hello, {:?}!", &indexes_js.to_string()));
         context.buffer_data_with_array_buffer_view(
             WebGl2RenderingContext::ARRAY_BUFFER,
             &indexes_js, WebGl2RenderingContext::STATIC_DRAW,
@@ -184,14 +200,11 @@ fn start() -> Result<(), JsValue> {
     }
 
     let indexes_attribute_location = context.get_attrib_location(&program, "indexes");
-   context.vertex_attrib_pointer_with_i32(
-        indexes_attribute_location as u32,
-        1, WebGl2RenderingContext::UNSIGNED_INT, false, 0, 0,
+    context.vertex_attrib_pointer_with_i32(
+        indexes_attribute_location as u32, 1, 
+        WebGl2RenderingContext::UNSIGNED_INT, false, 4, 0,
     );
     context.enable_vertex_attrib_array(indexes_attribute_location as u32);
-
-
-
 
     let mut centroids = vec!();
     for triangle_verts in vertices.chunks_exact(6) {
@@ -212,6 +225,7 @@ fn start() -> Result<(), JsValue> {
         centroids.push(0.0); 
         centroids.push(0.0);
     }
+
     let centroid_buffer_idx = 1;
     context.uniform_block_binding(
         &program, 
@@ -235,9 +249,16 @@ fn start() -> Result<(), JsValue> {
         Some(&centroid_buffer));
 
 
-    let vert_count = (vertices.len() / 3) as i32;
-    draw(&(*context), vert_count);
+    let vert_count = (vertices.len() / 2) as i32;
 
+
+
+    let key_handler = match KeyHandler::new(&document, context_cell.clone(), program_cell.clone()) {
+        Ok(_) => {},
+        Err(err) => { alert(&format!("Hello, {}!", &err.as_string().unwrap())) }
+    };
+    draw(&(*context), vert_count);
+    
     let resize_handler = Closure::<dyn FnMut()>::new(move || { 
         handle_resize(
             canvas_cell.clone(),
@@ -246,7 +267,7 @@ fn start() -> Result<(), JsValue> {
             vert_count)
         }
     );
-    //window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
+    // window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
     resize_handler.forget();
     Ok(())
 }
@@ -254,13 +275,10 @@ fn start() -> Result<(), JsValue> {
 fn draw(context: &WebGl2RenderingContext, vert_count: i32) {
     context.clear_color(0.0, 0.0, 0.0, 1.0);
     context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
-
     //context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, vert_count);
     context.draw_elements_with_i32(
-        WebGl2RenderingContext::TRIANGLES, 
-        6, 
-        WebGl2RenderingContext::UNSIGNED_INT,
-        0);
+        WebGl2RenderingContext::TRIANGLES, vert_count, 
+        WebGl2RenderingContext::UNSIGNED_INT, 0);
 }
 
 pub fn compile_shader(

@@ -3,15 +3,16 @@ use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
 use web_sys::*;
 use std::cell::RefCell;
 use std::rc::Rc;
-use glam::Mat4;
-
+use std::collections::HashMap;
 
 mod key_handler;
 mod webgl_const;
+mod rendering_backend;
 mod stage;
 
 use key_handler::*;
 use webgl_const::*;
+use rendering_backend::*;
 use stage::*;
 
 #[wasm_bindgen]
@@ -70,7 +71,7 @@ fn start() -> Result<(), JsValue> {
     canvas.style().set_property("display", "block")?;
     canvas.style().set_property("aspect-ratio", "1 / 1")?;
 
-    let prespective_proj_mat = Mat4::perspective_rh_gl(90.0, 1.0, 1.0, 100.0);
+    //let prespective_proj_mat = Mat4::perspective_rh_gl(90.0, 1.0, 1.0, 100.0);
     let canvas_cell = Rc::new(RefCell::new(canvas));
     let canvas = canvas_cell.clone();
     let canvas = canvas.borrow_mut();

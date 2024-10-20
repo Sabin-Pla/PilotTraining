@@ -28,9 +28,9 @@ impl KeyHandler {
 	pub fn new(
 			document: &web_sys::Document, 
 			context: Rc<RefCell<WebGl2RenderingContext>>,
-			program: Rc<RefCell<WebGlProgram>>) -> Result<Rc<RefCell<KeyHandler>>, JsValue> {
+			program: Rc<RefCell<WebGlProgram>>) -> Result<Rc<RefCell<Self>>, JsValue> {
 
-		let key_handler_cell = Rc::new(RefCell::new(KeyHandler { context, program }));
+		let key_handler_cell = Rc::new(RefCell::new(Self { context, program }));
 		let key_handler = key_handler_cell.clone();
 		let key_handler = key_handler.borrow_mut();
 		let key_handler_cell_handler = key_handler_cell.clone();

@@ -11,22 +11,32 @@ const PLATFORM_VERT: Rectangle = [
 ];
 
 const PLAYER_VERT: Rectangle = [
-	-1.0, -0.2,
+	-0.2, -0.2,
 	-0.2, 0.2,
 	0.2, -0.2,
 	0.2, 0.2
 ];
 
+const OBJECT_OFFSETS: [[f32; 2]; 2] = [	
+	[0.3, -0.9],  // player
+	[0.0, 0.0]  // platform
+];
+
+const OBJECT_COLORS: [[f32; 4]; 2] = [
+	[1.0, 1.0, 0.2, 0.9], // platform
+	[0.2, 1.0, 1.0, 0.4]  // player
+]; 
+
+const UNIFORM_COLORS_IDX: usize = 4;
 const UNIFORM_CENTERS_IDX: usize = 3;
 const UNIFORM_CAMERA_IDX: usize = 2;
+
 
 struct World<'a> {
 	positions: Vec<(f64, f64)>,
 	objects: Vec<(&'a [f64], ObjectDescription)>,
 	names: HashMap<String, usize>
 }
-
-
 
 struct ObjectDescription {
 	colour: (u8, u8, u8),
@@ -60,8 +70,9 @@ macro_rules! js_array {
 }
 
 
-fn rectangle_center(r: Rectangle) -> [f32; 4] {
-	[(r[0] + r[2] + r[4] + r[6]) / 4.0, (r[1] + r[3] + r[5] + r[7]) / 4.0, 0.0, 0.0]
+fn rectangle_center(r: Rectangle, offset: usize) -> [f32; 4] {
+	let offset = OBJECT_OFFSETS[offset];
+	[(r[0] + r[2] + r[4] + r[6]) / 4.0, (r[1] + r[3] + r[5] + r[7]) / 4.0, offset[0], offset[1]]
 }
 
 pub fn stage_program(context: &WebGl2RenderingContext) ->  Result<WebGlProgram, String> {
@@ -90,43 +101,40 @@ pub fn init(context: &WebGl2RenderingContext, program: &WebGlProgram) {
     context.clear_color(0.0, 0.0, 0.0, 1.0);
     context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-    let camera = Camera { center:(0.0, -0.35), zoom: (0.5, 0.5)};
-    let index_buffer = [0, 1, 2, 3];
-    let stage_center = rectangle_center(PLATFORM_VERT);
-    load_buffer(&PLATFORM_VERT, BufferArg::Vertexes(2), context, program);
+    let camera = Camera { center:(0.0, -0.0), zoom: (0.25, 0.25)};
+
+    let objects = [&PLAYER_VERT, &PLATFORM_VERT];
+    let object_verts = objects.iter().map(|o| **o).into_iter().flatten().collect::<Vec<f32>>();
+    let centers = objects.iter().enumerate().map(|(offset, o)| rectangle_center(**o, offset))
+    	.into_iter().flatten().collect::<Vec<f32>>();
+    let index_buffer: Vec<usize> = (0..object_verts.len() / 2).collect();
+
+
+    load_buffer(&object_verts, BufferArg::Vertexes(2), context, program);
     load_buffer(&index_buffer, BufferArg::ElementArray, context, program);
     load_buffer(
-    	&stage_center, 
-    	BufferArg::Uniform(BufferDataType::Float, "u_centers".to_string(), UNIFORM_CENTERS_IDX), 
+    	&index_buffer, 
+    	BufferArg::Attribute(BufferDataType::UnsignedInt, 1, "vert_idx".to_string()), 
+    	context, program);
+    load_buffer(
+    	&OBJECT_COLORS.into_iter().flatten().collect::<Vec<f32>>(), 
+    	BufferArg::Uniform(BufferDataType::Float, "u_colors".to_string(), UNIFORM_COLORS_IDX), 
+    	context, program);
+    load_buffer(
+    	&centers, 
+    	BufferArg::Uniform(BufferDataType::Float, "u_worldspace_centers".to_string(), UNIFORM_CENTERS_IDX), 
     	context, program);
     load_buffer(
     	&camera.to_buffer(), 
     	BufferArg::Uniform(BufferDataType::Float, "u_camera".to_string(), UNIFORM_CAMERA_IDX), 
     	context, program);
-    context.draw_elements_with_i32(
-        WebGl2RenderingContext::TRIANGLE_STRIP, index_buffer.len() as i32, 
-        WebGl2RenderingContext::UNSIGNED_INT, 0);
-    draw_player(context, program);
-}
-
-
-pub fn draw_player(context: &WebGl2RenderingContext, program: &WebGlProgram) {
-	let index_buffer = [0, 1, 2, 3];
-	let stage_center = rectangle_center(PLAYER_VERT);
-	let camera = Camera { center:(0.0, -0.35), zoom: (0.5, 0.5)};
-	load_buffer(&PLAYER_VERT,  BufferArg::Vertexes(2),  context, program);
- 	load_buffer(&index_buffer, BufferArg::ElementArray, context, program);
- 	load_buffer(
-    	&stage_center, 
-    	BufferArg::Uniform(BufferDataType::Float, "u_centers".to_string(), UNIFORM_CENTERS_IDX), 
-    	context, program);
- 	load_buffer(
-    	&camera.to_buffer(), 
-    	BufferArg::Uniform(BufferDataType::Float, "u_camera".to_string(), UNIFORM_CAMERA_IDX), 
-    	context, program);
-	context.draw_elements_with_i32(
-        WebGl2RenderingContext::TRIANGLE_STRIP, index_buffer.len() as i32, 
-        WebGl2RenderingContext::UNSIGNED_INT, 0);
+ //   context.draw_elements_with_i32(
+ //       WebGl2RenderingContext::TRIANGLE_STRIP, 4, 
+ //       WebGl2RenderingContext::UNSIGNED_INT, 0);
+    context.draw_arrays(
+        WebGl2RenderingContext::TRIANGLE_STRIP, 0, 4);
+    context.draw_arrays(
+        WebGl2RenderingContext::TRIANGLE_STRIP, 4, 4);
 }
 
 enum BufferArg {

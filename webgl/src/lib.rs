@@ -254,7 +254,11 @@ fn start() -> Result<(), JsValue> {
 
 
 
-    let key_handler = match KeyHandler::new(&document, context_cell.clone(), program_cell.clone()) {
+    let key_handler = match KeyHandler::new(
+            &document, 
+            context_cell.clone(),
+            program_cell.clone(), 
+            window_cell.clone()) {
         Ok(_) => {},
         Err(err) => { alert(&format!("Hello, {}!", &err.as_string().unwrap())) }
     };

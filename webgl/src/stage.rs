@@ -97,11 +97,11 @@ pub fn stage_program(context: &WebGl2RenderingContext) ->  Result<WebGlProgram, 
     link_program(&context, &vert_shader?, &frag_shader?)
 }
 
-pub fn init(context: &WebGl2RenderingContext, program: &WebGlProgram) {
+pub fn init(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &Window) {
     context.clear_color(0.0, 0.0, 0.0, 1.0);
     context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
-    let camera = Camera { center:(0.0, -0.0), zoom: (0.25, 0.25)};
+    let camera = Camera { center:(0.0, -0.0), zoom: (0.125, 0.125)};
 
     let objects = [&PLAYER_VERT, &PLATFORM_VERT];
     let object_verts = objects.iter().map(|o| **o).into_iter().flatten().collect::<Vec<f32>>();
@@ -128,13 +128,32 @@ pub fn init(context: &WebGl2RenderingContext, program: &WebGlProgram) {
     	&camera.to_buffer(), 
     	BufferArg::Uniform(BufferDataType::Float, "u_camera".to_string(), UNIFORM_CAMERA_IDX), 
     	context, program);
- //   context.draw_elements_with_i32(
- //       WebGl2RenderingContext::TRIANGLE_STRIP, 4, 
- //       WebGl2RenderingContext::UNSIGNED_INT, 0);
     context.draw_arrays(
         WebGl2RenderingContext::TRIANGLE_STRIP, 0, 4);
     context.draw_arrays(
         WebGl2RenderingContext::TRIANGLE_STRIP, 4, 4);
+
+    game_loop(context, program, window);
+}
+
+
+fn game_loop(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &Window) {
+	// https://github.com/anlumo/webgl_rust_demo/blob/master/src/renderer.rs
+    let f: Rc<RefCell<Option<Closure<dyn FnMut()>>>> = Rc::new(RefCell::new(None));
+    let outer_f = f.clone();
+    let context = context.clone();
+    let window = window.clone();
+
+    *outer_f.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+    	context.clear_color(0.0, 0.0, 0.0, 1.0);
+   	 	context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+        window.request_animation_frame(f.borrow().as_ref().unwrap().as_ref().unchecked_ref())
+            .expect("failed requesting animation frame");
+    }) as Box<dyn FnMut()>));
+
+    let window = web_sys::window().unwrap();
+    window.request_animation_frame(outer_f.borrow().as_ref().unwrap().as_ref().unchecked_ref())
+        .expect("failed requesting animation frame");
 }
 
 enum BufferArg {

@@ -2,7 +2,8 @@ use crate::*;
 
 pub struct KeyHandler {
 	context: Rc<RefCell<WebGl2RenderingContext>>,
-	program: Rc<RefCell<WebGlProgram>>
+	program: Rc<RefCell<WebGlProgram>>,
+	window: Rc<RefCell<Window>>
 }
 
 impl KeyHandler {
@@ -13,10 +14,12 @@ impl KeyHandler {
 				let context = context.borrow_mut();
 				let program = self.program.clone();
 				let program = program.borrow_mut();
+				let window = self.window.clone();
+				let window = window.borrow_mut();
 				match stage_program(&context) {
 					Ok(program) => {
 						context.use_program(Some(&program));
-						stage::init(&context, &program);
+						stage::init(&context, &program, &window);
 					},
 					Err(err) => alert(&format!("Error loading stage: {}", err))
 				}
@@ -28,9 +31,10 @@ impl KeyHandler {
 	pub fn new(
 			document: &web_sys::Document, 
 			context: Rc<RefCell<WebGl2RenderingContext>>,
-			program: Rc<RefCell<WebGlProgram>>) -> Result<Rc<RefCell<Self>>, JsValue> {
+			program: Rc<RefCell<WebGlProgram>>,
+			window: Rc<RefCell<Window>>) -> Result<Rc<RefCell<Self>>, JsValue> {
 
-		let key_handler_cell = Rc::new(RefCell::new(Self { context, program }));
+		let key_handler_cell = Rc::new(RefCell::new(Self { context, program, window }));
 		let key_handler = key_handler_cell.clone();
 		let key_handler = key_handler.borrow_mut();
 		let key_handler_cell_handler = key_handler_cell.clone();

@@ -169,7 +169,7 @@ pub fn init_bezier(context: &WebGl2RenderingContext, program: &WebGlProgram, win
     	-1.0, -0.2,
 		-0.2, 0.5,
 		0.9, -0.39, 0.0, 0.0];
-    let index_buffer: Vec<usize> = vec![0, 1, 2, 3, 4];
+    let index_buffer: Vec<usize> = vec![0, 1, 2, 3];
 
 
     load_buffer(&objects, BufferArg::Vertexes(2), context, program);
@@ -179,15 +179,14 @@ pub fn init_bezier(context: &WebGl2RenderingContext, program: &WebGlProgram, win
     	BufferArg::Attribute(BufferDataType::UnsignedInt, 1, "vert_idx".to_string()), 
     	context, program);
     load_buffer(
+    	&[500.0_f32, 500.0, 0.0, 0.0], 
+    	BufferArg::Uniform(BufferDataType::Float, "u_resolution".to_string(), UNIFORM_RESOLUTION_IDX), 
+    	context, program);
+    load_buffer(
     	&camera.to_buffer(), 
     	BufferArg::Uniform(BufferDataType::Float, "u_camera".to_string(), UNIFORM_CAMERA_IDX), 
     	context, program);
-    load_buffer(
-    	&[500.0, 500.0, 0.0, 0.0], 
-    	BufferArg::Uniform(BufferDataType::Float, "u_resolution".to_string(), UNIFORM_RESOLUTION_IDX), 
-    	context, program);
-
-    let nodes: [f32; 8] = objects;
+    let nodes: [f32; 8] = objects.clone();
     load_buffer(
     	&nodes, 
     	BufferArg::Uniform(BufferDataType::Float, "u_nodes".to_string(), UNIFORM_NODES_IDX), 

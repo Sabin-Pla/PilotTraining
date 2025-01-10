@@ -30,10 +30,10 @@ layout (std140) uniform u_resolution {
 void main() {
 
 	res = vec4(renamed_res.xy, placeholder.xy);
-	res = vec4(500.0, 500.0, 0.0, 0.0);
-	
+	//res = vec4(500.0, 500.0, 0.0, 0.0);
+
 	int vert_idx = int(vert_idx / 3.0);
-	width = 1.63;
+	width = 1.0;
 
 	p0 = n0;
 	p1 = n1;

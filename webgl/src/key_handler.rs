@@ -8,18 +8,28 @@ pub struct KeyHandler {
 
 impl KeyHandler {
 	pub fn handle(&self, event: KeyboardEvent) {
+		let context = self.context.clone();
+		let context = context.borrow_mut();
+		let program = self.program.clone();
+		let program = program.borrow_mut();
+		let window = self.window.clone();
+		let window = window.borrow_mut();
+
 		match event.code().as_str() {
 			"KeyW" => {
-				let context = self.context.clone();
-				let context = context.borrow_mut();
-				let program = self.program.clone();
-				let program = program.borrow_mut();
-				let window = self.window.clone();
-				let window = window.borrow_mut();
 				match stage_program(&context) {
 					Ok(program) => {
 						context.use_program(Some(&program));
 						stage::init(&context, &program, &window);
+					},
+					Err(err) => alert(&format!("Error loading stage: {}", err))
+				}
+			},
+			"KeyB" => {
+				match stage_program_bezier(&context) {
+					Ok(program) => {
+						context.use_program(Some(&program));
+						stage::init_bezier(&context, &program, &window);
 					},
 					Err(err) => alert(&format!("Error loading stage: {}", err))
 				}

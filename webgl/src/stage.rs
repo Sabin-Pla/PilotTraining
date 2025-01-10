@@ -30,7 +30,8 @@ const OBJECT_COLORS: [[f32; 4]; 2] = [
 const UNIFORM_COLORS_IDX: usize = 4;
 const UNIFORM_CENTERS_IDX: usize = 3;
 const UNIFORM_CAMERA_IDX: usize = 2;
-
+const UNIFORM_NODES_IDX: usize = 5;
+const UNIFORM_RESOLUTION_IDX: usize = 6;
 
 struct World<'a> {
 	positions: Vec<(f64, f64)>,
@@ -94,12 +95,29 @@ pub fn stage_program(context: &WebGl2RenderingContext) ->  Result<WebGlProgram, 
         WebGl2RenderingContext::FRAGMENT_SHADER,
         &std::include_str!("stage_fragment.glsl")).map_err(shader_err("Fragment"));
 
+    link_program(&context, &vert_shader?, &frag_shader?)
+}
+
+pub fn stage_program_bezier(context: &WebGl2RenderingContext) ->  Result<WebGlProgram, String> {
+
+	let shader_err = |t| { 
+		let inner = move |e| {
+			format!("{t} shader error\n{e}") 
+		};
+		inner
+	};
+
+	 let vert_shader = compile_shader(
+        &context,
+        WebGl2RenderingContext::VERTEX_SHADER,
+        &std::include_str!("bezier_vertex.glsl")).map_err(shader_err("Vertex"));
+
     let bezier_frag_shader = compile_shader(
         &context,
         WebGl2RenderingContext::FRAGMENT_SHADER,
         &std::include_str!("bezier_fragment.glsl")).map_err(shader_err("Fragment"));
 
-    link_program(&context, &vert_shader?, &frag_shader?, Some(&bezier_frag_shader?))
+    link_program(&context, &vert_shader?, &bezier_frag_shader?)
 }
 
 pub fn init(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &Window) {
@@ -138,9 +156,45 @@ pub fn init(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &W
     context.draw_arrays(
         WebGl2RenderingContext::TRIANGLE_STRIP, 4, 4);
 
-    game_loop(context, program, window);
+   // game_loop(context, program, window);
 }
 
+pub fn init_bezier(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &Window) {
+    context.clear_color(0.0, 0.0, 0.0, 1.0);
+    context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
+    let camera = Camera { center:(0.0, -0.0), zoom: (0.125, 0.125)};
+
+    let objects = [
+    	-1.0, -0.2,
+		-0.2, 0.5,
+		0.9, -0.39, 0.0, 0.0];
+    let index_buffer: Vec<usize> = vec![0, 1, 2, 3, 4];
+
+
+    load_buffer(&objects, BufferArg::Vertexes(2), context, program);
+    load_buffer(&index_buffer, BufferArg::ElementArray, context, program);
+    load_buffer(
+    	&index_buffer, 
+    	BufferArg::Attribute(BufferDataType::UnsignedInt, 1, "vert_idx".to_string()), 
+    	context, program);
+    load_buffer(
+    	&camera.to_buffer(), 
+    	BufferArg::Uniform(BufferDataType::Float, "u_camera".to_string(), UNIFORM_CAMERA_IDX), 
+    	context, program);
+    load_buffer(
+    	&[500.0, 500.0, 0.0, 0.0], 
+    	BufferArg::Uniform(BufferDataType::Float, "u_resolution".to_string(), UNIFORM_RESOLUTION_IDX), 
+    	context, program);
+
+    let nodes: [f32; 8] = objects;
+    load_buffer(
+    	&nodes, 
+    	BufferArg::Uniform(BufferDataType::Float, "u_nodes".to_string(), UNIFORM_NODES_IDX), 
+    	context, program);
+    context.draw_arrays(
+        WebGl2RenderingContext::TRIANGLE_STRIP, 0, 3);
+}
 
 fn game_loop(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &Window) {
 	// https://github.com/anlumo/webgl_rust_demo/blob/master/src/renderer.rs
@@ -209,8 +263,9 @@ pub fn load_buffer<T>(
 		BufferArg::Attribute(datatype, dim_len, ref name) => set_attribute(datatype, name, dim_len),
 
 		BufferArg::Uniform(datatype, ref name, idx) => {
+			let uniform_index = context.get_uniform_block_index(&program, &name);
 			context.uniform_block_binding(
-		        &program, context.get_uniform_block_index(&program, &name), idx as u32);
+		        &program, uniform_index, idx as u32);
 			context.bind_buffer_base(
 		        WebGl2RenderingContext::UNIFORM_BUFFER, idx as u32, Some(&gl_buffer));
 		},

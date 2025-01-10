@@ -133,7 +133,7 @@ fn start() -> Result<(), JsValue> {
         "##,
     )?;
 
-    let program = link_program(&context, &vert_shader, &frag_shader, None)?;
+    let program = link_program(&context, &vert_shader, &frag_shader)?;
     let program_cell = Rc::new(RefCell::new(program));
     let program = program_cell.borrow_mut();
     context.use_program(Some(&program));
@@ -313,8 +313,7 @@ pub fn compile_shader(
 pub fn link_program(
     context: &WebGl2RenderingContext,
     vert_shader: &WebGlShader,
-    frag_shader: &WebGlShader,
-    bezier_frag_shader: Option<&WebGlShader>,
+    frag_shader: &WebGlShader
 ) -> Result<WebGlProgram, String> {
     let program = context
         .create_program()
@@ -322,9 +321,6 @@ pub fn link_program(
 
     context.attach_shader(&program, vert_shader);
     context.attach_shader(&program, frag_shader);
-    if let Some(bezier_frag_shader) = bezier_frag_shader{
-        context.attach_shader(&program, bezier_frag_shader);
-    }
     context.link_program(&program);
 
     if context

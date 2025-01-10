@@ -1,13 +1,12 @@
 #version 300 es
 precision highp float;
 
-in vec2 p;
 
 in float width;
 in vec2 p0;
 in vec2 p1;
 in vec2 p2;
-
+in vec4 res;
 out vec4 outColor;
 
 vec2 lerp(float t, vec2 p0, vec2 p1) {
@@ -40,6 +39,8 @@ void main() {
     // solve using cardano's method.
     // graphing calculator demo: https://www.desmos.com/calculator/7tc0crnzai?lang=ja
 
+    vec2 p = gl_FragCoord.xy / res.xy; 
+
     float A = p0.x;
     float B = p1.x;
     float C = p2.x;
@@ -55,21 +56,22 @@ void main() {
     float b=c1/c3;
     float c=c0/c3;
 
-    float z1= b - pow(a, 2.0)*(3.0);
+    float z1= b - pow(a, 2.0)/(3.0);
     float z2= 2.0 * pow(a, 3.0)/(27.0) - (a*b/3.0) + c;
-    float d=pow(
-        pow(z1, 3.0) / 27.0 + pow(z2, 2.0) / 4.0, 0.5);
+    float d=pow(pow(z1, 3.0) / 27.0 + pow(z2, 2.0) / 4.0, 0.5);
 
     float u1=pow(-z2/2.0+d, 1.0/3.0);
-    float u2=pow(-z2/2.0-d, 1.0/3.0);
+    float u2=pow(abs(-z2/2.0-d), 1.0/3.0);
     float x1=u1+u2;
-    float t=x1-a/3.0; // finally
+    float t=x1-a/3.0;
 
     vec2 l0 = lerp(t, p0, p1);
     vec2 l1 = lerp(t, p1, p2);
     vec2 l2 = lerp(t, l0, l1);
-    if (distance(p, l2) > width) {
-        discard;
+    float dist = distance(p, l2);
+    if (dist > width) {
+        outColor = vec4(p.x, p.y, 0.0, 1.0);
+    } else {
+        outColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
-    outColor = vec4(1.0, 1.0, 1.0, 0.5);
 }

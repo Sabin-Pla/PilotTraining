@@ -94,7 +94,12 @@ pub fn stage_program(context: &WebGl2RenderingContext) ->  Result<WebGlProgram, 
         WebGl2RenderingContext::FRAGMENT_SHADER,
         &std::include_str!("stage_fragment.glsl")).map_err(shader_err("Fragment"));
 
-    link_program(&context, &vert_shader?, &frag_shader?)
+    let bezier_frag_shader = compile_shader(
+        &context,
+        WebGl2RenderingContext::FRAGMENT_SHADER,
+        &std::include_str!("bezier_fragment.glsl")).map_err(shader_err("Fragment"));
+
+    link_program(&context, &vert_shader?, &frag_shader?, Some(&bezier_frag_shader?))
 }
 
 pub fn init(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &Window) {

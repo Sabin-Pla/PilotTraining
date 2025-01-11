@@ -27,7 +27,7 @@ layout (std140) uniform u_worldspace_centers {
 };
 
 void main() {
-    int rect_idx = int(vert_idx / 4.0);
+    int rect_idx = int(float(gl_VertexID) / 4.0);
     center = objects_center[rect_idx].centers - objects_center[rect_idx].offset;
     color = colors[rect_idx];
     vert = (position.xy + center) * zoom.xy  - camera.xy;

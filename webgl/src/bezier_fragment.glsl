@@ -39,8 +39,8 @@ void main() {
     // solve using cardano's method.
     // graphing calculator demo: https://www.desmos.com/calculator/7tc0crnzai?lang=ja
 
-    vec2 p = gl_FragCoord.xy / res.xy; 
-
+    vec2 p = (gl_FragCoord.xy / res.xy -(0.5, 0.5)) * 2.0; 
+   // p = gl_FragCoord.xy / 1.0*vec2(522.0, 293.0) + vec2(-0.5,-0.5); 
     float A = p0.x;
     float B = p1.x;
     float C = p2.x;
@@ -48,8 +48,11 @@ void main() {
     float E = p1.y;
     float F = p2.y;
 
-    float c0 =2.0*pow(A, 2.0)-2.0*A*B-2.0*A*p.x+2.0*B*p.x+2.0*pow(D, 2.0)-2.0*D*E-2.0*D*p.y+2.0*E*p.y;
-    float c1=(-6.0 *pow(A, 2.0)+12.0*A*B-2.0*A*C+2.0*A*p.x-4.0*pow(B, 2.0)-4.0*B*p.x+2.0*C*p.x-6.0*pow(D,2.0)+12.0*D*E-2.0*D*F+2.0*D*p.y-4.0*pow(E,2.0)-4.0*E*p.y+2.0*F*p.y);
+    float c0=2.0*pow(A, 2.0)-2.0*A*B-2.0*A*p.x+2.0*B*p.x+2.0*pow(D, 2.0)-2.0*D*E-2.0*D*p.y+2.0*E*p.y;
+    float c1=-6.0 *pow(A, 2.0)+
+        12.0*A*B-2.0*A*C+2.0*A*p.x-4.0*pow(B, 2.0)-
+        4.0*B*p.x+2.0*C*p.x-6.0*pow(D,2.0)+12.0*D*E-
+        2.0*D*F+2.0*D*p.y-4.0*pow(E,2.0)-4.0*E*p.y+2.0*F*p.y;
     float c2=(6.0 *pow(A, 2.0)-18.0*A*B+6.0*A*C+12.0*pow(B, 2.0)-6.0*B*C+6.0*pow(D, 2.0)-18.0*D*E+6.0*D*F+12.0*pow(E, 2.0)-6.0*E*F);
     float c3=(-2.0*pow(A, 2.0)+8.0*A*B-4.0*A*C-8.0*pow(B, 2.0)+8.0*B*C-2.0*pow(C, 2.0)-2.0*pow(D, 2.0)+8.0*D*E-4.0*D*F-8.0*pow(E,2.0)+8.0*E*F-2.0*pow(F,2.0));
     float a=c2/c3;
@@ -60,18 +63,30 @@ void main() {
     float z2= 2.0 * pow(a, 3.0)/(27.0) - (a*b/3.0) + c;
     float d=pow(pow(z1, 3.0) / 27.0 + pow(z2, 2.0) / 4.0, 0.5);
 
-    float u1=pow(-z2/2.0+d, 1.0/3.0);
-    float u2=pow(abs(-z2/2.0-d), 1.0/3.0);
+    float u1=pow((-z2/2.0)+d, 1.0/3.0);
+    float diff =-z2/2.0-d;
+    float u2;
+    u2=pow(abs(diff), 1.0/3.0);
+    if (diff < 0.0) {
+        u2=-u2;
+    }
     float x1=u1+u2;
     float t=x1-a/3.0;
 
     vec2 l0 = lerp(t, p0, p1);
     vec2 l1 = lerp(t, p1, p2);
     vec2 l2 = lerp(t, l0, l1);
-    float dist = distance(p, l2);
-    if (dist > width) {
-        outColor = vec4(p.x, p.y, 0.0, 1.0);
+
+    //l2 = p0 +2.0*t*p1 -2.0*t*p0+pow(t, 2.0)*p2-2.0*pow(t, 2.0)*p1+pow(t, 2.0)*p0;
+    float dist = distance(l2, p);
+    float test = pow(x1, 3.0) + z1*x1 + z2;
+    float f = -0.076332271279 - z2 + 0.2;
+
+    if (p.x < -0.0 && p.x > -0.4 && p.y > 0.44 && p.y < 0.48) { 
+        outColor = vec4(f, f, f, 1.0);
+    } else if (dist >= width) { 
+        outColor = vec4(test, test, test, 1.0);
     } else {
-        outColor = vec4(1.0, 1.0, 1.0, 1.0);
+        outColor = vec4(0.3, 0.0, 0.0, 1.0);
     }
 }

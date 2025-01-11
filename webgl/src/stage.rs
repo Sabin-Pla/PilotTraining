@@ -178,8 +178,22 @@ pub fn init_bezier(context: &WebGl2RenderingContext, program: &WebGlProgram, win
     	&index_buffer, 
     	BufferArg::Attribute(BufferDataType::UnsignedInt, 1, "vert_idx".to_string()), 
     	context, program);
+    let (width, height): (f32, f32) = (
+    	window.inner_width().unwrap().as_f64().unwrap() as f32, 
+    	window.inner_height().unwrap().as_f64().unwrap() as f32);
+    let document = window.document().unwrap();
+    let document_cell = Rc::new(RefCell::new(document));
+    let document = document_cell.clone();
+    let document = document.borrow_mut();
+
+    let canvas = document.get_element_by_id("canvas").unwrap();
+    let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>().unwrap();
+    let mut canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
+    let (width, height): (f32, f32) = (
+    	canvas.width() as f32,
+    	canvas.height() as f32);
     load_buffer(
-    	&[500.0_f32, 500.0, 0.0, 0.0], 
+    	&[width, height, 0.0, 0.0], 
     	BufferArg::Uniform(BufferDataType::Float, "u_resolution".to_string(), UNIFORM_RESOLUTION_IDX), 
     	context, program);
     load_buffer(
@@ -244,6 +258,9 @@ pub fn load_buffer<T>(
 		buf: &[T], arg: BufferArg,
 		context: &WebGl2RenderingContext,
 		program: &WebGlProgram) {
+
+	// todo: validate if buffer param type is incorrect given bufferarg
+	// this can easily happen in the even that we don't pass an explicit type and rust just defaults to f64
 
 	let gl_buffer = context.create_buffer().expect("Failed to create buffer");
 	let buffer_target = arg.target();

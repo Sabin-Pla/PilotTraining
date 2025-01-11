@@ -79,12 +79,11 @@ void main() {
 
     //l2 = p0 +2.0*t*p1 -2.0*t*p0+pow(t, 2.0)*p2-2.0*pow(t, 2.0)*p1+pow(t, 2.0)*p0;
     float dist = distance(l2, p);
-    float test = pow(x1, 3.0) + z1*x1 + z2;
-    float f = -0.076332271279 - z2 + 0.2;
+    float test = pow(x1, 3.0) + z1*x1 + z2 ;
 
-    if (p.x < -0.0 && p.x > -0.4 && p.y > 0.44 && p.y < 0.48) { 
-        outColor = vec4(f, f, f, 1.0);
-    } else if (dist >= width) { 
+    if (dist >= width) { 
+        // fragment should be discarded here, but we're using these values
+        // to give an indication if the cubic equation solution failed
         outColor = vec4(test, test, test, 1.0);
     } else {
         outColor = vec4(0.3, 0.0, 0.0, 1.0);

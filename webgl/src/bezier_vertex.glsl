@@ -33,26 +33,23 @@ void main() {
 	//res = vec4(500.0, 500.0, 0.0, 0.0);
 
 	int vert_idx = gl_VertexID;
-	width = 0.09;
+	width = 0.03;
 
 	p0 = n0;
 	p1 = n1;
 	p2 = n2;
 	vec2 p = position.xy;
 
-	if (0 == 1) {
-		if (p == p0) {
-			// Make room so that the whole width of the curve is actually inside the
-			// triangle fragment. otherwise the bezier nodes would be directly
-			// on the fragment edge.
-			p = p0 + (width * (p0-p2) / distance(p0, p2)); 
-		} else if (p == p1) {
-			vec2 lower_mid = (p0 + p2) / 2.0;
-			p = p1 + (width * (p1-lower_mid) / distance(p1, lower_mid)); 
-		} else {
-			p = p2 + (width * (p2-p0) / distance(p2, p0)); 
-		}
+	
+	if (p == p0) {
+		// Make room so that the whole width of the curve is actually inside the
+		// triangle fragment. otherwise the bezier nodes would be directly
+		// on the fragment edge.
+		p = p0 + (width * 2.0 * (p0-p2) / distance(p0, p2)); 
+	} else if (p == p2) {
+		p = p2 + (width * 2.0 * (p2-p0) / distance(p2, p0)); 
 	}
+
 
     gl_Position = vec4(p, 1.0, 1.0);
 }

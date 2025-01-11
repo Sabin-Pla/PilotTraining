@@ -86,6 +86,12 @@ void main() {
         // to give an indication if the cubic equation solution failed
         outColor = vec4(test, test, test, 1.0);
     } else {
-        outColor = vec4(0.3, 0.0, 0.0, 1.0);
+        float intensity = 0.3;
+        outColor = vec4(intensity, 0.0, 0.0, 1.0);
+        float edge_range = width * 0.1;
+        float margin = width - dist;
+        if (margin <= edge_range) {
+            outColor.xyz = outColor.xyz * (1.0 - ((edge_range - margin) / edge_range));
+        }
     }
 }

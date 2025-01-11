@@ -33,7 +33,7 @@ void main() {
 	//res = vec4(500.0, 500.0, 0.0, 0.0);
 
 	int vert_idx = gl_VertexID;
-	width = 0.03;
+	width = 0.09;
 
 	p0 = n0;
 	p1 = n1;

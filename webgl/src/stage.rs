@@ -167,7 +167,7 @@ pub fn init_bezier(context: &WebGl2RenderingContext, program: &WebGlProgram, win
     let camera = Camera { center:(0.0, -0.0), zoom: (0.125, 0.125)};
 
     let objects = [
-    	-1.0, -0.2,
+    	-0.8, -0.2,
 		-0.2, 0.5,
 		0.9, -0.39, 0.0, 0.0];
     let index_buffer: Vec<usize> = vec![0, 1, 2, 3];

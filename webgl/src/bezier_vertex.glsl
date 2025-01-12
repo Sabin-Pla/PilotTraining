@@ -40,18 +40,20 @@ void main() {
 	p2 = n2;
 	vec2 p = position.xy;
 
-	
 	if (p == p0) {
 		// Make room so that the whole width of the curve is actually inside the
 		// triangle fragment. otherwise the bezier nodes would be directly
 		// on the fragment edge.
 		p = p0 + (width * 2.0 * (p0-p2) / distance(p0, p2)); 
+		p += (width * 2.0 * (p0-p1) / distance(p0, p1)); 
 	} else if (p == p1) {
-		vec2 lower_mid = (p0 + p2) / 2.0;
-		p = p1 + (width * 2.0 * (p1-lower_mid) / distance(p2, p0)); 
+		p = p1 + (width * 2.0 * (p1-p0) / distance(p1, p0)); 
+		p += (width * 2.0 * (p1-p2) / distance(p1, p2)); 
 	} else if (p == p2) {
 		p = p2 + (width * 2.0 * (p2-p0) / distance(p2, p0)); 
+		p += (width * 2.0 * (p2-p1) / distance(p2, p1)); 
 	}
+
 
 
     gl_Position = vec4(p, 1.0, 1.0);

@@ -107,14 +107,23 @@ void main() {
     float dist = distance(l2, p);
     float test = pow(x1, 3.0) + z1*x1 + z2 ;
 
-    if (dist >= width) { 
+    if (dist >= width ) { 
         // fragment should be discarded here, but we're using these values
         // to give an indication if the cubic equation solution failed
         outColor = vec4(test, test, test, 1.0);
     } else {
         float intensity = 0.3;
         outColor = vec4(intensity, 0.0, 0.0, 1.0);
-        float edge_range = width * 0.1;
+        float edge_range = width * 0.2;
+
+        float d1 = distance(p, p0);
+        float d2 =  distance(p, p2);
+        if (t < 0.0 && d1 > width - edge_range) {
+            dist = d1;
+        } else if (t > 1.0 && d2 > width - edge_range) {
+            dist = d2;
+        }
+
         float margin = width - dist;
         if (margin <= edge_range) {
             outColor.xyz = outColor.xyz * (1.0 - ((edge_range - margin) / edge_range));

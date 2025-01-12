@@ -69,7 +69,7 @@ fn start() -> Result<(), JsValue> {
     canvas.style().set_property("max-width", "80%")?;
     canvas.style().set_property("height", "100%")?;
     canvas.style().set_property("display", "block")?;
-    canvas.style().set_property("aspect-ratio", "1 / 1")?;
+    canvas.style().set_property("aspect-ratio", "16 / 9")?;
 
     //let prespective_proj_mat = Mat4::perspective_rh_gl(90.0, 1.0, 1.0, 100.0);
     let canvas_cell = Rc::new(RefCell::new(canvas));

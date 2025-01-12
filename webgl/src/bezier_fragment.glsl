@@ -13,6 +13,20 @@ vec2 lerp(float t, vec2 p0, vec2 p1) {
     return p0 + t * (p1-p0);
 }
 
+
+bool draw_bezier_node(vec2 p, vec2 p_other) {
+    float node_size = 0.025;
+    vec4 node_color = vec4(0.2, 0.5, 0.5, 1.0);
+
+    if (p.x > (p_other.x - node_size / 2.0) && p.x <  (p_other.x + node_size / 2.0) ) {
+        if (p.y > (p_other.y - node_size / 2.0) && p.y <  (p_other.y + node_size / 2.0) ) {
+            outColor = node_color;
+            return true;
+        }
+    }
+    return false;
+}
+
 void main() {
 
     // given and a current point P (gl_Position), which we want to verify is on a bezier curve or not, and 
@@ -40,7 +54,19 @@ void main() {
     // graphing calculator demo: https://www.desmos.com/calculator/7tc0crnzai?lang=ja
 
     vec2 p = (gl_FragCoord.xy / res.xy -(0.5, 0.5)) * 2.0; 
-   // p = gl_FragCoord.xy / 1.0*vec2(522.0, 293.0) + vec2(-0.5,-0.5); 
+
+    if (draw_bezier_node(p, p0)) {
+        return; 
+    }
+    
+    if (draw_bezier_node(p, p1)) {
+        return;
+    }
+
+    if (draw_bezier_node(p, p2)) {
+        return;
+    }
+
     float A = p0.x;
     float B = p1.x;
     float C = p2.x;

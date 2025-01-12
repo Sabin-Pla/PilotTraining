@@ -162,7 +162,8 @@ pub fn init(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &W
 pub fn init_bezier(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &Window) {
     context.clear_color(0.0, 0.0, 0.0, 1.0);
     context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
-
+   	let mut attr = context.get_context_attributes().unwrap();
+   	attr.set_antialias(true);
     let camera = Camera { center:(0.0, -0.0), zoom: (0.125, 0.125)};
 
     let objects = [

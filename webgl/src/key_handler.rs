@@ -1,18 +1,16 @@
 use crate::*;
 
 pub struct KeyHandler {
-	context: Rc<RefCell<WebGl2RenderingContext>>,
-	program: Rc<RefCell<WebGlProgram>>,
-	window: Rc<RefCell<Window>>
+	wp: Webpage
 }
 
 impl KeyHandler {
 	pub fn handle(&self, event: KeyboardEvent) {
-		let context = self.context.clone();
+		let context = self.wp.context.clone();
 		let context = context.borrow_mut();
-		let program = self.program.clone();
+		let program = self.wp.program.clone();
 		let program = program.borrow_mut();
-		let window = self.window.clone();
+		let window = self.wp.window.clone();
 		let window = window.borrow_mut();
 
 		match event.code().as_str() {
@@ -38,13 +36,9 @@ impl KeyHandler {
 		}
 	}
 
-	pub fn new(
-			document: &web_sys::Document, 
-			context: Rc<RefCell<WebGl2RenderingContext>>,
-			program: Rc<RefCell<WebGlProgram>>,
-			window: Rc<RefCell<Window>>) -> Result<Rc<RefCell<Self>>, JsValue> {
+	pub fn new(wp: Webpage) -> Result<Rc<RefCell<Self>>, JsValue> {
 
-		let key_handler_cell = Rc::new(RefCell::new(Self { context, program, window }));
+		let key_handler_cell = Rc::new(RefCell::new(Self { wp: wp.clone() }));
 		let key_handler = key_handler_cell.clone();
 		let key_handler = key_handler.borrow_mut();
 		let key_handler_cell_handler = key_handler_cell.clone();
@@ -53,6 +47,7 @@ impl KeyHandler {
                key_handler_cell_handler.borrow_mut().handle(event)
 	        }
 	    );
+	    let document = wp.document.borrow();
 	    document.add_event_listener_with_callback(
 	        "keypress", handler.as_ref().unchecked_ref())?;
 	    handler.forget();

@@ -7,12 +7,14 @@ use std::collections::HashMap;
 
 mod key_handler;
 mod mouse_handler;
+mod webpage;
 mod webgl_const;
 mod rendering_backend;
 mod stage;
 
 use key_handler::*;
 use mouse_handler::*;
+use webpage::*;
 use webgl_const::*;
 use rendering_backend::*;
 use stage::*;
@@ -269,19 +271,12 @@ fn start() -> Result<(), JsValue> {
         window: window_cell.clone()
     };
 
-    let c =  document_cell.clone();
-    let c2 = c.borrow();
-
-    let mouse_handler = match MouseHandler::new(&document, wp.clone()) {
+    let mouse_handler = match MouseHandler::new(wp.clone()) {
         Ok(_) => {},
         Err(err) => { alert(&format!("Mouse listener error, {}!", &err.as_string().unwrap())) }
     };
 
-    let key_handler = match KeyHandler::new(
-            &document, 
-            context_cell.clone(),
-            program_cell.clone(), 
-            window_cell.clone()) {
+    let key_handler = match KeyHandler::new(wp.clone()) {
         Ok(_) => {},
         Err(err) => { alert(&format!("Key listener error, {}!", &err.as_string().unwrap())) }
     };      

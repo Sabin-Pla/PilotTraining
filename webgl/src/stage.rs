@@ -156,6 +156,7 @@ pub fn init(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &W
     context.draw_arrays(
         WebGl2RenderingContext::TRIANGLE_STRIP, 4, 4);
 
+
    // game_loop(context, program, window);
 }
 
@@ -206,19 +207,53 @@ pub fn init_bezier(context: &WebGl2RenderingContext, program: &WebGlProgram, win
 	let nodes: Vec<f32> = objects.clone().chunks_exact(2) 
 		.into_iter().map(|c| [c[0], c[1], 0.0, 0.0]).flatten().collect();
 
-    load_buffer(
-    	&nodes, 
+
+    load_buffer(&nodes, 
     	BufferArg::Uniform(BufferDataType::Float, "u_bezier_nodes".to_string(), UNIFORM_NODES_IDX), 
     	context, program);
-    context.draw_arrays(
-        WebGl2RenderingContext::TRIANGLE_STRIP, 0, 3);
+    context.draw_arrays(WebGl2RenderingContext::TRIANGLE_STRIP, 0, 3);
+
+    let mouse_x = 0.8;
+    let mouse_y = 0.2;
+    let mouse_draw = mouse_pos_bar_clipspace_vert(mouse_x, mouse_y);
+    let vert_shader = compile_shader(
+        &context, WebGl2RenderingContext::VERTEX_SHADER,
+        &std::include_str!("interface_vertex.glsl")).unwrap();
+    let frag_shader = compile_shader(
+        &context, WebGl2RenderingContext::FRAGMENT_SHADER,
+        &std::include_str!("interface_fragment.glsl")).unwrap();
+   	let interface_draw_program = link_program(context, &vert_shader, &frag_shader).unwrap();
+    context.use_program(Some(&interface_draw_program));
+    load_buffer(&mouse_draw.1, BufferArg::Vertexes(2), context, &interface_draw_program);
+//	context.draw_elements_with_i32(
+ //       mouse_draw.0, mouse_draw.1.len() as i32, 
+  //      WebGl2RenderingContext::UNSIGNED_INT, 0);
 }
 
-fn mouse_pos_bar_clipspace_vert() -> [f32; 8] {
 
+
+fn mouse_pos_bar_clipspace_vert(x: f32, y: f32) -> (u32, [f32; 16]) {
+	// gets vertices of bars representing mouse x, y coords in clipspace.
 	let widget_topleft = [0.9, -0.9];
-	let widget_bottomright = [1.0, 1.0];
-	todo!() 
+	let widget_bottomright = [1.0, -1.0];
+
+	let x0 = widget_topleft[0];
+	let y0 = widget_topleft[1];
+	let x1 = widget_bottomright[0];
+	let y1 = widget_bottomright[1];
+	let verts = [
+		x0, y0, 
+		x1, y0,
+		x0 * x, (y0 + y1) / 2.0,
+		x1 * x, (y0 + y1) / 2.0,
+
+		x0, (y0 + y1) / 2.0,
+		x1, (y0 + y1) / 2.0,
+		x0 * y, y1,
+		x1 * y, y1,
+	];
+
+	(WebGl2RenderingContext::TRIANGLE_STRIP, verts) 
 }
 
 fn game_loop(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &Window) {

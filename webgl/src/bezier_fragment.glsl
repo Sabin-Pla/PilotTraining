@@ -97,11 +97,15 @@ void main() {
         u2=-u2;
     }
     float x1=u1+u2;
-    float t=x1-a/3.0;
+
+    // todo: this solution is not valid when P 
+    // is on the other side of the rhombus formed by p0, p1, p2, (p2 + (p0 - p1)) from P1
+    float t=x1-a/3.0; 
 
     vec2 l0 = lerp(t, p0, p1);
     vec2 l1 = lerp(t, p1, p2);
     vec2 l2 = lerp(t, l0, l1);
+
 
     //l2 = p0 +2.0*t*p1 -2.0*t*p0+pow(t, 2.0)*p2-2.0*pow(t, 2.0)*p1+pow(t, 2.0)*p0;
     float dist = distance(l2, p);

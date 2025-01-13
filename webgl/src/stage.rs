@@ -201,13 +201,24 @@ pub fn init_bezier(context: &WebGl2RenderingContext, program: &WebGlProgram, win
     	&camera.to_buffer(), 
     	BufferArg::Uniform(BufferDataType::Float, "u_camera".to_string(), UNIFORM_CAMERA_IDX), 
     	context, program);
-    let nodes: [f32; 8] = objects.clone();
+
+    // pad vec2 to vec4 cause webgl is dumb 
+	let nodes: Vec<f32> = objects.clone().chunks_exact(2) 
+		.into_iter().map(|c| [c[0], c[1], 0.0, 0.0]).flatten().collect();
+
     load_buffer(
     	&nodes, 
-    	BufferArg::Uniform(BufferDataType::Float, "u_nodes".to_string(), UNIFORM_NODES_IDX), 
+    	BufferArg::Uniform(BufferDataType::Float, "u_bezier_nodes".to_string(), UNIFORM_NODES_IDX), 
     	context, program);
     context.draw_arrays(
         WebGl2RenderingContext::TRIANGLE_STRIP, 0, 3);
+}
+
+fn mouse_pos_bar_clipspace_vert() -> [f32; 8] {
+
+	let widget_topleft = [0.9, -0.9];
+	let widget_bottomright = [1.0, 1.0];
+	todo!() 
 }
 
 fn game_loop(context: &WebGl2RenderingContext, program: &WebGlProgram, window: &Window) {

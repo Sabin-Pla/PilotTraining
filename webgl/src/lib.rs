@@ -6,11 +6,13 @@ use std::rc::Rc;
 use std::collections::HashMap;
 
 mod key_handler;
+mod mouse_handler;
 mod webgl_const;
 mod rendering_backend;
 mod stage;
 
 use key_handler::*;
+use mouse_handler::*;
 use webgl_const::*;
 use rendering_backend::*;
 use stage::*;
@@ -253,6 +255,17 @@ fn start() -> Result<(), JsValue> {
     let vert_count = (vertices.len() / 2) as i32;
 
 
+    let wp = Webpage { 
+        document: document_cell.clone(), 
+        context: context_cell.clone(),
+        program: program_cell.clone(), 
+        window: window_cell.clone()
+    };
+
+    let mouse_handler = match MouseHandler::new(&document, wp.clone()) {
+        Ok(_) => {},
+        Err(err) => { alert(&format!("Mouse listener error, {}!", &err.as_string().unwrap())) }
+    };
 
     let key_handler = match KeyHandler::new(
             &document, 
@@ -260,7 +273,7 @@ fn start() -> Result<(), JsValue> {
             program_cell.clone(), 
             window_cell.clone()) {
         Ok(_) => {},
-        Err(err) => { alert(&format!("Hello, {}!", &err.as_string().unwrap())) }
+        Err(err) => { alert(&format!("Key listener error, {}!", &err.as_string().unwrap())) }
     };
     draw(&(*context), vert_count);
     

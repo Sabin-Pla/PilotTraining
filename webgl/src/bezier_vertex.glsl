@@ -1,7 +1,6 @@
 #version 300 es
 precision highp float;
 
-in vec4 vert_idx;
 in vec4 position;
 out vec2 p0;
 out vec2 p1;
@@ -14,11 +13,8 @@ layout (std140) uniform u_camera {
     vec2 zoom;
 };
 
-layout (std140) uniform u_nodes {
-    vec2 n0;
-    vec2 n1;
-    vec2 n2;
-    vec2 n;
+layout (std140) uniform u_bezier_nodes {
+    mat3x2 nodes[1]; // is really 3x4 due to alignment requirements
 };
 
 layout (std140) uniform u_resolution {
@@ -26,30 +22,28 @@ layout (std140) uniform u_resolution {
     vec2 placeholder;
 };
 
-
 void main() {
-
 	res = vec4(renamed_res.xy, placeholder.xy);
 	//res = vec4(500.0, 500.0, 0.0, 0.0);
 
-	int vert_idx = gl_VertexID;
+	int vert_idx = gl_VertexID / 3;
 	width = 0.05;
 
-	p0 = n0;
-	p1 = n1;
-	p2 = n2;
+	p0 = nodes[vert_idx][0].xy;
+	p1 = nodes[vert_idx][1].xy;
+	p2 = nodes[vert_idx][2].xy;
 	vec2 p = position.xy;
 
-	if (p == p0) {
+	if (p == p0) { // start node
 		// Make room so that the whole width of the curve is actually inside the
 		// triangle fragment. otherwise the bezier nodes would be directly
 		// on the fragment edge.
 		p = p0 + (width * 2.0 * (p0-p2) / distance(p0, p2)); 
 		p += (width * 2.0 * (p0-p1) / distance(p0, p1)); 
-	} else if (p == p1) {
+	} else if (p == p1) { // control node
 		p = p1 + (width * 2.0 * (p1-p0) / distance(p1, p0)); 
 		p += (width * 2.0 * (p1-p2) / distance(p1, p2)); 
-	} else if (p == p2) {
+	} else if (p == p2) { // end node
 		p = p2 + (width * 2.0 * (p2-p0) / distance(p2, p0)); 
 		p += (width * 2.0 * (p2-p1) / distance(p2, p1)); 
 	}

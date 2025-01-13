@@ -235,6 +235,7 @@ dependencies = [
 name = "webgl"
 version = "0.1.0"
 dependencies = [
+ "console_error_panic_hook",
  "glam",
  "js-sys",
  "wasm-bindgen",

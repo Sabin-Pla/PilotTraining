@@ -45,8 +45,15 @@ fn handle_resize(
     draw(context, vert_count);
 }
 
+#[wasm_bindgen]
+pub fn init_panic_hook() {
+    console_error_panic_hook::set_once();
+}
+
 #[wasm_bindgen(start)]
 fn start() -> Result<(), JsValue> {
+    init_panic_hook();
+    // panic!("FUCK"); now this will be visible in the browser console :)
     let window = web_sys::window().expect("Failed to start WASM: window()");
     let window_cell = Rc::new(RefCell::new(window));
     let window = window_cell.clone();

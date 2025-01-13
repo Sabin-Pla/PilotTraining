@@ -213,7 +213,7 @@ pub fn init_bezier(context: &WebGl2RenderingContext, program: &WebGlProgram, win
     	context, program);
     context.draw_arrays(WebGl2RenderingContext::TRIANGLE_STRIP, 0, 3);
 
-    let mouse_x = 0.8;
+    let mouse_x = 0.4;
     let mouse_y = 0.2;
     let mouse_draw = mouse_pos_bar_clipspace_vert(mouse_x, mouse_y);
     let vert_shader = compile_shader(
@@ -225,14 +225,12 @@ pub fn init_bezier(context: &WebGl2RenderingContext, program: &WebGlProgram, win
    	let interface_draw_program = link_program(context, &vert_shader, &frag_shader).unwrap();
     context.use_program(Some(&interface_draw_program));
     load_buffer(&mouse_draw.1, BufferArg::Vertexes(2), context, &interface_draw_program);
-//	context.draw_elements_with_i32(
- //       mouse_draw.0, mouse_draw.1.len() as i32, 
-  //      WebGl2RenderingContext::UNSIGNED_INT, 0);
+	context.draw_arrays(mouse_draw.0, 0, mouse_draw.1.len() as i32 / 2);
 }
 
 
 
-fn mouse_pos_bar_clipspace_vert(x: f32, y: f32) -> (u32, [f32; 16]) {
+fn mouse_pos_bar_clipspace_vert(x_ratio: f32, y_ratio: f32) -> (u32, [f32; 16]) {
 	// gets vertices of bars representing mouse x, y coords in clipspace.
 	let widget_topleft = [0.9, -0.9];
 	let widget_bottomright = [1.0, -1.0];
@@ -243,14 +241,14 @@ fn mouse_pos_bar_clipspace_vert(x: f32, y: f32) -> (u32, [f32; 16]) {
 	let y1 = widget_bottomright[1];
 	let verts = [
 		x0, y0, 
-		x1, y0,
-		x0 * x, (y0 + y1) / 2.0,
-		x1 * x, (y0 + y1) / 2.0,
+		x0 + (x1 - x0) * x_ratio, y0,
+		x0, (y0 + y1) / 2.0,
+		x0 + (x1 - x0) * x_ratio, (y0 + y1) / 2.0,
 
 		x0, (y0 + y1) / 2.0,
-		x1, (y0 + y1) / 2.0,
-		x0 * y, y1,
-		x1 * y, y1,
+		x0 + (x1 - x0) * y_ratio, (y0 + y1) / 2.0,
+		x0, y1,
+		x0 + (x1 - x0) * y_ratio, y1,
 	];
 
 	(WebGl2RenderingContext::TRIANGLE_STRIP, verts) 

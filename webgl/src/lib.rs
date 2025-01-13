@@ -54,7 +54,7 @@ fn start() -> Result<(), JsValue> {
     let document = window.document().unwrap();
     let document_cell = Rc::new(RefCell::new(document));
     let document = document_cell.clone();
-    let document = document.borrow_mut();
+    let document = document.borrow();
 
     let canvas = document.get_element_by_id("canvas").unwrap();
     let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>()?;
@@ -262,6 +262,9 @@ fn start() -> Result<(), JsValue> {
         window: window_cell.clone()
     };
 
+    let c =  document_cell.clone();
+    let c2 = c.borrow();
+
     let mouse_handler = match MouseHandler::new(&document, wp.clone()) {
         Ok(_) => {},
         Err(err) => { alert(&format!("Mouse listener error, {}!", &err.as_string().unwrap())) }
@@ -274,7 +277,7 @@ fn start() -> Result<(), JsValue> {
             window_cell.clone()) {
         Ok(_) => {},
         Err(err) => { alert(&format!("Key listener error, {}!", &err.as_string().unwrap())) }
-    };
+    };      
     draw(&(*context), vert_count);
     
     let resize_handler = Closure::<dyn FnMut()>::new(move || { 

@@ -35,10 +35,9 @@ impl MouseHandler {
 	        }
 	    );
 
-	    // wp.document.clone().borrow().add_event_listener_with_callback("click", handler.as_ref().unchecked_ref())?;
-	    // ^ this causes a panic for some reason
+	    wp.document.clone().borrow().add_event_listener_with_callback("click", handler.as_ref().unchecked_ref())?;
 
-	    document.add_event_listener_with_callback("click", handler.as_ref().unchecked_ref())?;
+	    //document.add_event_listener_with_callback("click", handler.as_ref().unchecked_ref())?;
 	    handler.forget();
 	    Ok(mouse_handler_cell.clone())
 	}  

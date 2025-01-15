@@ -18,7 +18,7 @@ impl QuadraticBezier {
 		}
 	}
 
-	pub fn to_padded_buffer(&self, aspect_ratio: (f32, f32), field_offset: (f32, f32)) -> [f32; 8] {
+	pub fn to_padded_buffer(&self, aspect_ratio: (f32, f32), field_offset: (f32, f32)) -> [f32; 12] {
 		let start_node = self.start_node.clipspace(aspect_ratio, field_offset);
 		let control_node = self.control_node.clipspace(aspect_ratio, field_offset);
 		let end_node = self.end_node.clipspace(aspect_ratio, field_offset);
@@ -26,7 +26,7 @@ impl QuadraticBezier {
 			start_node.0, start_node.1, 
 			control_node.0, control_node.1, 
 			end_node.0, end_node.1, 
-			0.0, 0.0
+			0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 		]
 	}
 }

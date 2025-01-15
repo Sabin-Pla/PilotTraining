@@ -14,13 +14,17 @@ layout (std140) uniform u_camera {
 };
 
 layout (std140) uniform u_bezier_nodes {
-    mat4x2 nodes[1]; // is really 3x4 due to alignment requirements
+    mat3x4 nodes[1]; 
 };
 
 layout (std140) uniform u_resolution {
     vec2 resolution;
     vec2 placeholder;
 };
+
+bool vert_equality(vec2 a, vec2 b) {
+	return distance(a, b) <= 0.01;
+}
 
 void main() {
 	res = vec4(resolution.xy, placeholder.xy);
@@ -29,20 +33,20 @@ void main() {
 	width = 0.05;
 
 	p0 = nodes[vert_idx][0].xy;
-	p1 = nodes[vert_idx][1].xy;
-	p2 = nodes[vert_idx][2].xy;
+	p1 = nodes[vert_idx][2].xy;
+	p2 = nodes[vert_idx][1].xy;
 	vec2 p = position.xy;
 
-	if (p == p0) { // start node
+	if (vert_equality(p, p0)) { // start node
 		// Make room so that the whole width of the curve is actually inside the
 		// triangle fragment. otherwise the bezier nodes would be directly
 		// on the fragment edge.
 		p = p0 + (width * 2.0 * (p0-p2) / distance(p0, p2)); 
 		p += (width * 2.0 * (p0-p1) / distance(p0, p1)); 
-	} else if (p == p1) { // control node
+	} else if (vert_equality(p, p1)) { // control node
 		p = p1 + (width * 2.0 * (p1-p0) / distance(p1, p0)); 
 		p += (width * 2.0 * (p1-p2) / distance(p1, p2)); 
-	} else if (p == p2) { // end node
+	} else if (vert_equality(p, p2)) { // end node
 		p = p2 + (width * 2.0 * (p2-p0) / distance(p2, p0)); 
 		p += (width * 2.0 * (p2-p1) / distance(p2, p1)); 
 	}

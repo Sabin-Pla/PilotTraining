@@ -16,9 +16,8 @@ vec2 lerp(float t, vec2 p0, vec2 p1) {
 }
 
 
-bool draw_bezier_node(vec2 p, vec2 p_other) {
+bool draw_bezier_node(vec2 p, vec2 p_other, vec4 node_color) {
     float node_size = 0.025;
-    vec4 node_color = vec4(0.2, 0.5, 0.5, 1.0);
 
     if (p.x > (p_other.x - node_size / 2.0) && p.x <  (p_other.x + node_size / 2.0) ) {
         if (p.y > (p_other.y - node_size / 2.0) && p.y <  (p_other.y + node_size / 2.0) ) {
@@ -55,17 +54,17 @@ void main() {
     // solve using cardano's method.
     // graphing calculator demo: https://www.desmos.com/calculator/7tc0crnzai?lang=ja
 
-    vec2 p = (gl_FragCoord.xy / res.xy -(0.5, 0.5)) * 2.0; 
+    vec2 p = (gl_FragCoord.xy / res.xy - (0.5, 0.5)) * 2.0; 
 
-    if (draw_bezier_node(p, p0)) {
+    if (draw_bezier_node(p, p0,  vec4(0.2, 0.2, 0.9, 1.0))) {
         return; 
     }
     
-    if (draw_bezier_node(p, p1)) {
+    if (draw_bezier_node(p, p1,  vec4(0.2, 0.9, 0.2, 1.0))) {
         return;
     }
 
-    if (draw_bezier_node(p, p2)) {
+    if (draw_bezier_node(p, p2,  vec4(0.9, 0.2, 0.2, 1.0))) {
         return;
     }
 
@@ -116,10 +115,10 @@ void main() {
     if (dist >= width ) { 
         // fragment should be discarded here, but we're using these values
         // to give an indication if the cubic equation solution failed
-        outColor = vec4(test, test, test, 1.0);
+        outColor = vec4(test, test, 0.0, 1.0);
     } else {
         float intensity = 0.3;
-        outColor = vec4(intensity, 0.0, 0.0, 1.0);
+        outColor = vec4(intensity, intensity * 1.13, intensity, 1.0);
         float edge_range = width * 0.2;
 
         float d1 = distance(p, p0);

@@ -28,9 +28,7 @@ impl Game {
             aspect_x: f32, aspect_y: f32) -> Vec<f32> {
 
 		self.track_spline
-            .chunks_exact(3).map(
-                |t| QuadraticBezier::from(
-                    (t[0], t[1], t[2])))
+            .chunks_exact(3).map(|t| QuadraticBezier::from((t[0], t[1], t[2])))
             .collect::<Vec<_>>()
             .iter().map(
             |bezier| bezier
@@ -127,8 +125,8 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
     	renderer::BufferArg::Uniform(BufferDataType::Float, "u_bezier_nodes".to_string(), renderer::UNIFORM_NODES_IDX), 
     	&wgl_context, &game_context.track_shader);
     wgl_context.draw_arrays(
-        WebGl2RenderingContext::TRIANGLES, 0, 3);
-    //    (track_nodes_uniform_buf.len() / 8) as i32);
+        WebGl2RenderingContext::TRIANGLES, 0,
+        (track_spline_vertex_buffer.len() / 2) as i32);
 
     //alert(&format!("vert {:?}", track_spline_vertex_buffer));
     //alert(&format!("uni {:?}", track_nodes_uniform_buf));
@@ -137,6 +135,6 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
     wgl_context.use_program(Some(&game_context.interface_shader));
     //alert(&format!("mouse {:?}", &mouse_draw.1));
     renderer::load_buffer(&mouse_draw.1, renderer::BufferArg::Vertexes(2), &wgl_context, &game_context.interface_shader);
-	wgl_context.draw_arrays(mouse_draw.0, 0, 8);
+	wgl_context.draw_arrays(mouse_draw.0, 0, (mouse_draw.1.len() / 2) as i32);
 }
 

@@ -1,7 +1,7 @@
 use crate::*;
 
 pub trait Stage {
-	fn track_spline(&self) -> Vec<QuadraticBezier>;
+	fn track_spline(&self) -> Vec<FieldPosition>;
 }
 
 const DEMO_STAGE_BEZIER_NODES: [f32; 6] = [
@@ -13,17 +13,13 @@ const DEMO_STAGE_BEZIER_NODES: [f32; 6] = [
 pub struct DemoStage {}
 
 impl Stage for DemoStage {
-	fn track_spline(&self) -> Vec<QuadraticBezier> {
+	fn track_spline(&self) -> Vec<FieldPosition> {
 		DEMO_STAGE_BEZIER_NODES
-			.windows(2).map(|v| 
+			.chunks_exact(2).map(|v| 
 				FieldPosition {
 					x: v[0], 
 					y: v[1] 
 				})
-			.collect::<Vec<_>>()
-			.windows(3).map(
-				|t| QuadraticBezier::from(
-					(t[0], t[1], t[2])))
 			.collect()
 	}
 }

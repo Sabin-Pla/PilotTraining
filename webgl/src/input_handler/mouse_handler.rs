@@ -43,6 +43,8 @@ fn make_mouse_handler(wp:Webpage) -> Result<Rc<RefCell<MouseHandler>>, JsValue> 
 	let press_handler = mouse_handler_cell.clone(); 
 	let release_handler = mouse_handler_cell.clone(); 
 	let move_handler = mouse_handler_cell.clone(); 
+	let document = wp.document.clone();
+	let document = document.borrow();
 
 	let press_handler = Closure::<dyn FnMut(_)>::new(
 		move |event: MouseEvent| {
@@ -63,12 +65,9 @@ fn make_mouse_handler(wp:Webpage) -> Result<Rc<RefCell<MouseHandler>>, JsValue> 
 	);
 
 
-	wp.document.clone().borrow().add_event_listener_with_callback(
-		"onmousedown", press_handler.as_ref().unchecked_ref())?;
-	wp.document.clone().borrow().add_event_listener_with_callback(
-		"onmouseup", release_handler.as_ref().unchecked_ref())?;
-	wp.document.clone().borrow().add_event_listener_with_callback(
-		"onmousemove", move_handler.as_ref().unchecked_ref())?;
+	document.set_onclick(Some(press_handler.as_ref().unchecked_ref()));
+	document.set_onmouseup(Some(release_handler.as_ref().unchecked_ref()));
+	document.set_onmousemove(Some(move_handler.as_ref().unchecked_ref()));
 	press_handler.forget();
 	release_handler.forget();
 	move_handler.forget();

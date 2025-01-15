@@ -14,17 +14,16 @@ layout (std140) uniform u_camera {
 };
 
 layout (std140) uniform u_bezier_nodes {
-    mat3x2 nodes[1]; // is really 3x4 due to alignment requirements
+    mat4x2 nodes[1]; // is really 3x4 due to alignment requirements
 };
 
 layout (std140) uniform u_resolution {
-    vec2 renamed_res;
+    vec2 resolution;
     vec2 placeholder;
 };
 
 void main() {
-	res = vec4(renamed_res.xy, placeholder.xy);
-	//res = vec4(500.0, 500.0, 0.0, 0.0);
+	res = vec4(resolution.xy, placeholder.xy);
 
 	int vert_idx = gl_VertexID / 3;
 	width = 0.05;

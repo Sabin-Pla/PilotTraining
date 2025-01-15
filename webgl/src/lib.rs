@@ -119,9 +119,9 @@ fn start() -> Result<(), JsValue> {
     let base_shaders = renderer::initialize_base_shaders(context); 
 
     let track_shader =  renderer::link_program(&context, 
-        &base_shaders[0].0, &base_shaders[0].1);
-    let interface_shader = renderer::link_program(&context, 
         &base_shaders[1].0, &base_shaders[1].1);
+    let interface_shader = renderer::link_program(&context, 
+        &base_shaders[0].0, &base_shaders[0].1);
 
 
     let game_context = GameContext {
@@ -134,12 +134,12 @@ fn start() -> Result<(), JsValue> {
     };
 
 
-    let mut game = Game { track_spline: vec!() };
+    let mut game = Game::new();
     game.load_stage(&DemoStage {});
 
     start_game_loop(game_context, game);
     // window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
     resize_handler.forget();
-
+    
     Ok(())
 }

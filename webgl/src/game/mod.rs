@@ -9,15 +9,30 @@ pub use game_context::*;
 pub use quadratic_bezier::*;
 
 pub struct Game {
-	pub track_spline: Vec<QuadraticBezier>,
+    track_spline: Vec<FieldPosition>,
 }
 
 // the play field is 20% to the right of the screen.
 pub const FIELD_OFFSET_X: f32 = 0.2; 
 
 impl Game {
-	pub fn track_spline_buffer(&self, aspect_x: f32, aspect_y: f32) -> Vec<f32> {
-		self.track_spline.iter().map(
+
+    pub fn new() -> Self {
+        Self {
+            track_spline: Vec::with_capacity(512),
+        }
+    }
+
+	pub fn track_spline_uniform_buffer(
+            &self, 
+            aspect_x: f32, aspect_y: f32) -> Vec<f32> {
+
+		self.track_spline
+            .chunks_exact(3).map(
+                |t| QuadraticBezier::from(
+                    (t[0], t[1], t[2])))
+            .collect::<Vec<_>>()
+            .iter().map(
             |bezier| bezier
                 .to_padded_buffer(
 			         (aspect_x, aspect_y), 
@@ -26,7 +41,25 @@ impl Game {
                 .into_iter()
                 .flatten()
                 .collect::<Vec<f32>>()
-    	}
+    }
+
+    pub fn track_spline_vertex_buffer(
+            &self, 
+            aspect_x: f32, aspect_y: f32) -> Vec<f32> {
+
+        self.track_spline.iter().map(
+            |vertex| {
+                let v = vertex
+                    .clipspace(
+                         (aspect_x, aspect_y), 
+                         (FIELD_OFFSET_X, 0.0));
+                [v.0, v.1]
+            })
+            .flatten()
+            .collect()
+    }
+
+
 
     pub fn load_stage(&mut self, stage: &dyn Stage) {
         self.track_spline = stage.track_spline();
@@ -60,47 +93,50 @@ pub fn start_game_loop(mut game_context: GameContext, mut game: Game) {
 
 
 fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
-    let (pixels_x, pixles_y) = game_context.internal_resolution();
+    let (pixels_x, pixels_y) = game_context.internal_resolution();
     let (aspect_x, aspect_y) = game_context.aspect_ratio;
-    let (mouse_x, mouse_y) = game_context.input_handler.mouse_clipspace_coords(pixels_x, pixles_y);
+    let (mouse_x, mouse_y) = game_context.input_handler.mouse_clipspace_coords(pixels_x, pixels_y);
 	let wgl_context = game_context.wp.context.clone();
 	let wgl_context = wgl_context.borrow();
-
     
     wgl_context.clear_color(0.0, 0.0, 0.0, 1.0);
     wgl_context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
+
+    // render the track
+    wgl_context.use_program(Some(&game_context.track_shader));
+
+    renderer::load_buffer(
+        &[pixels_x, pixels_y, 0.0, 0.0], 
+        renderer::BufferArg::Uniform(
+            BufferDataType::Float, "u_resolution".to_string(), renderer::UNIFORM_RESOLUTION_IDX), 
+        &wgl_context, &game_context.track_shader);
 
     renderer::load_buffer(
         &game_context.camera.to_buffer((aspect_x, aspect_y), (FIELD_OFFSET_X, 0.0)), 
         renderer::BufferArg::Uniform(BufferDataType::Float, "u_camera".to_string(), renderer::UNIFORM_CAMERA_IDX), 
         &wgl_context, &game_context.track_shader);
-
-
-    // render the track
-    wgl_context.use_program(Some(&game_context.track_shader));
-    let track_bezier_nodes_buffer = game.track_spline_buffer(aspect_x, aspect_y);
+    let track_spline_vertex_buffer = game.track_spline_vertex_buffer(aspect_x, aspect_y);
     renderer::load_buffer(
-    	&track_bezier_nodes_buffer, 
+    	&track_spline_vertex_buffer, 
     	renderer::BufferArg::Vertexes(2), 
     	&wgl_context, 
     	&game_context.track_shader);
     // pad vec2 to vec4 cause webgl is dumb 
-	let nodes_uniform_buf: Vec<f32> = track_bezier_nodes_buffer
-        .clone()
-        .chunks_exact(2) 
-		.into_iter()
-        .map(|c| [c[0], c[1], 0.0, 0.0])
-        .flatten()
-        .collect();
-    renderer::load_buffer(&nodes_uniform_buf, 
+	let track_nodes_uniform_buf: Vec<f32> = game.track_spline_uniform_buffer(aspect_x, aspect_y);
+    renderer::load_buffer(&track_nodes_uniform_buf, 
     	renderer::BufferArg::Uniform(BufferDataType::Float, "u_bezier_nodes".to_string(), renderer::UNIFORM_NODES_IDX), 
-    	&wgl_context, &game_context.interface_shader);
-    wgl_context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, (track_bezier_nodes_buffer.len() / 3) as i32);
+    	&wgl_context, &game_context.track_shader);
+    wgl_context.draw_arrays(
+        WebGl2RenderingContext::TRIANGLES, 0, 3);
+    //    (track_nodes_uniform_buf.len() / 8) as i32);
 
+    //alert(&format!("vert {:?}", track_spline_vertex_buffer));
+    //alert(&format!("uni {:?}", track_nodes_uniform_buf));
     // render the UI
     let mouse_draw = mouse_pos_bar_clipspace_vert(mouse_x, mouse_y);
     wgl_context.use_program(Some(&game_context.interface_shader));
+    //alert(&format!("mouse {:?}", &mouse_draw.1));
     renderer::load_buffer(&mouse_draw.1, renderer::BufferArg::Vertexes(2), &wgl_context, &game_context.interface_shader);
-	wgl_context.draw_arrays(mouse_draw.0, 0, mouse_draw.1.len() as i32 / 2);
+	wgl_context.draw_arrays(mouse_draw.0, 0, 8);
 }
 

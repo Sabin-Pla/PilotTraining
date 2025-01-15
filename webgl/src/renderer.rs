@@ -1,4 +1,4 @@
- use crate::*;
+use crate::*;
 
 pub const UNIFORM_CAMERA_IDX: usize = 1;
 pub const UNIFORM_NODES_IDX: usize = 2;

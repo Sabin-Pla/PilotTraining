@@ -9,6 +9,8 @@ in vec2 p2;
 in vec4 res;
 out vec4 outColor;
 
+// (entity_space.xy + world_space.xy) * zoom.xy  - camera.xy;
+
 vec2 lerp(float t, vec2 p0, vec2 p1) {
     return p0 + t * (p1-p0);
 }

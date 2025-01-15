@@ -1,23 +1,31 @@
+#![allow(dead_code)]
+#![allow(unconditional_recursion)]
+
 use wasm_bindgen::prelude::*;
-use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader};
 use web_sys::*;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::collections::HashMap;
+use core::default;
+use core::ops::Deref;
 
-mod key_handler;
-mod mouse_handler;
+mod input_handler;
+mod interface;
 mod webpage;
 mod webgl_const;
-mod rendering_backend;
+mod camera;
+mod renderer;
+mod game;
 mod stage;
 
-use key_handler::*;
-use mouse_handler::*;
 use webpage::*;
 use webgl_const::*;
-use rendering_backend::*;
-use stage::*;
+use camera::*;
+use input_handler::*;
+pub use stage::*;
+pub use interface::*;
+use game::*;
+
+pub use game::QuadraticBezier;
 
 #[wasm_bindgen]
 extern "C" {
@@ -33,8 +41,7 @@ fn get_viewport_dim(window: &Window) -> (u32, u32) {
 fn handle_resize( 
         canvas: Rc<RefCell<HtmlCanvasElement>>,
         context: Rc<RefCell<WebGl2RenderingContext>>,
-        window: Rc<RefCell<Window>>,
-        vert_count: i32) {
+        window: Rc<RefCell<Window>>) {
     let window = window.borrow_mut();
     let canvas = canvas.borrow_mut();
     let context = &context.borrow_mut();
@@ -44,22 +51,22 @@ fn handle_resize(
     context.viewport(0, 0,  
         canvas.width().try_into().unwrap(),
         canvas.height().try_into().unwrap());
-    draw(context, vert_count);
 }
 
 #[wasm_bindgen]
 pub fn init_panic_hook() {
+    // panic!("FUCK"); now this will be visible in the browser console :)
     console_error_panic_hook::set_once();
 }
 
 #[wasm_bindgen(start)]
 fn start() -> Result<(), JsValue> {
     init_panic_hook();
-    // panic!("FUCK"); now this will be visible in the browser console :)
+    
     let window = web_sys::window().expect("Failed to start WASM: window()");
     let window_cell = Rc::new(RefCell::new(window));
     let window = window_cell.clone();
-    let window = window.borrow_mut();
+    let window = window.borrow();
     let document = window.document().unwrap();
     let document_cell = Rc::new(RefCell::new(document));
     let document = document_cell.clone();
@@ -67,7 +74,7 @@ fn start() -> Result<(), JsValue> {
 
     let canvas = document.get_element_by_id("canvas").unwrap();
     let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>()?;
-    let mut canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
+    let canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
 
     let (width, height) = get_viewport_dim(&*window);
     canvas.set_width(width);
@@ -82,7 +89,6 @@ fn start() -> Result<(), JsValue> {
     canvas.style().set_property("display", "block")?;
     canvas.style().set_property("aspect-ratio", "16 / 9")?;
 
-    //let prespective_proj_mat = Mat4::perspective_rh_gl(90.0, 1.0, 1.0, 100.0);
     let canvas_cell = Rc::new(RefCell::new(canvas));
     let canvas = canvas_cell.clone();
     let canvas = canvas.borrow_mut();
@@ -92,263 +98,48 @@ fn start() -> Result<(), JsValue> {
         .dyn_into::<WebGl2RenderingContext>()?;
     let context_cell = Rc::new(RefCell::new(context));
     let context = context_cell.clone();
-    let context = &context.borrow_mut();
-
-    let vert_shader = compile_shader(
-        &context,
-        WebGl2RenderingContext::VERTEX_SHADER,
-        r##"#version 300 es
- 
-        in vec4 position;
-        in vec4 indexes;
-        out vec4 index2;
-        out vec4 pos2;
-
-        layout (std140) uniform CircleCenters {
-            vec4 u_circleCenters[3];
-        };
-        out vec2 center; // Circle index
-
-        void main() {
-            gl_Position = position;
-            pos2 = position;
-            int i = int(indexes[0]);
-            center = u_circleCenters[i].xy;     
-            index2 = indexes;
-        }
-        "##,
-    )?;
-
-    let frag_shader = compile_shader(
-        &context,
-        WebGl2RenderingContext::FRAGMENT_SHADER,
-        r##"#version 300 es
-    
-        precision highp float;
-        in vec4 position;
-        in vec4 index2;
-        in vec4 pos2;
-        out vec4 outColor;
-        in vec2 center; 
-        
-        void main() {
-            float dist = distance(pos2.xy, center.xy);
-            if (dist > 0.1) { 
-                float c = 0.2;
-                outColor = vec4(index2.x / 3.0, index2.y / 2.0, 0.1, 1);
-            } else {
-                float c = 0.35;
-                outColor = vec4(c, c, c, 1);
-            }
-        }
-        "##,
-    )?;
-
-    let program = link_program(&context, &vert_shader, &frag_shader)?;
-    let program_cell = Rc::new(RefCell::new(program));
-    let program = program_cell.borrow_mut();
-    context.use_program(Some(&program));
-
-    let vertices = [
-        -1.0, -1.0, 
-        -1.0, 0.0, 
-        1.0, 0.0,
-
-         -0.2, -1.0, 
-        0.1, -0.21, 
-        0.7, 0.0,
-
-        0.0, 0.0,
-        1.0, 1.0,
-        0.5, 0.75, 
-    ];
-
-    let position_attribute_location = context.get_attrib_location(&program, "position");
-    let buffer = context.create_buffer().ok_or("Failed to create buffer")?;
-    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&buffer));
-    unsafe {
-        let positions_array_buf_view = js_sys::Float32Array::view(&vertices);
-
-        context.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            &positions_array_buf_view,
-            WebGl2RenderingContext::STATIC_DRAW,
-        );
-    }
-    let vao = context
-        .create_vertex_array()
-        .ok_or("Could not create vertex array object")?;
-    context.bind_vertex_array(Some(&vao));
-    context.vertex_attrib_pointer_with_i32(
-        position_attribute_location as u32,
-        2, WebGl2RenderingContext::FLOAT, false, 0, 0,
-    );
-    context.enable_vertex_attrib_array(position_attribute_location as u32);
-
-
-    let index_buffer = context.create_buffer().ok_or("Failed to create buffer")?;
-    context.bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, Some(&index_buffer));
-    let mut indexes = [0 as u32, 1, 2, 3, 4, 5, 6, 7, 8];
-    unsafe {
-        let indexes_js = js_sys::Uint32Array::new_with_length(9);
-        indexes_js.copy_from(&indexes);
-        // alert(&format!("Hello, {:?}!", &indexes_js.to_string()));
-        context.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER,
-            &indexes_js, WebGl2RenderingContext::STATIC_DRAW,
-        );
-    }
-
-    let index_buffer2 = context.create_buffer().ok_or("Failed to create buffer")?;
-    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&index_buffer2));
-    let mut indexes2 = [0 as u32, 0, 0, 1, 1, 1, 2, 2, 2];
-    unsafe {
-        let indexes_js = js_sys::Uint32Array::new_with_length(9);
-        indexes_js.copy_from(&indexes2);
-        context.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::ARRAY_BUFFER,
-            &indexes_js, WebGl2RenderingContext::STATIC_DRAW,
-        );
-    }
-
-    let indexes_attribute_location = context.get_attrib_location(&program, "indexes");
-    context.vertex_attrib_pointer_with_i32(
-        indexes_attribute_location as u32, 1, 
-        WebGl2RenderingContext::UNSIGNED_INT, false, 4, 0,
-    );
-    context.enable_vertex_attrib_array(indexes_attribute_location as u32);
-
-    let mut centroids = vec!();
-    for triangle_verts in vertices.chunks_exact(6) {
-        let (mut x, mut y) = (0.0, 0.0);
-        for point in triangle_verts.chunks_exact(2) {
-            x += point[0];
-            y += point[1];
-        }
-
-        x /= 3.0;
-        y /= 3.0;
-        centroids.push(x);
-        centroids.push(y);
-        // we need to append 2 extra elements because the buffer
-        // must be rounded up to the base alignment of a vec4
-        // https://registry.khronos.org/OpenGL/specs/es/3.0/es_spec_3.0.pdf 
-        // Section 2.12
-        centroids.push(0.0); 
-        centroids.push(0.0);
-    }
-
-    let centroid_buffer_idx = 1;
-    context.uniform_block_binding(
-        &program, 
-        context.get_uniform_block_index(&program, "CircleCenters"),
-        centroid_buffer_idx);
-    let centroid_buffer = context.create_buffer().ok_or("Failed to create buffer")?;
-    context.bind_buffer(WebGl2RenderingContext::UNIFORM_BUFFER, Some(&centroid_buffer));
-    unsafe {
-        let centroids_js = js_sys::Float32Array::new_with_length(centroids.len() as u32);
-        centroids_js.copy_from(&centroids.as_slice());
-        // alert(&format!("Hello, {:?}!", &centroids_js.to_string()));
-        context.buffer_data_with_array_buffer_view(
-            WebGl2RenderingContext::UNIFORM_BUFFER,
-            &centroids_js,
-            WebGl2RenderingContext::STATIC_DRAW,
-        );
-    }
-    context.bind_buffer_base(
-        WebGl2RenderingContext::UNIFORM_BUFFER,
-        centroid_buffer_idx,
-        Some(&centroid_buffer));
-
-
-    let vert_count = (vertices.len() / 2) as i32;
-
+    let context = &context.borrow();
 
     let wp = Webpage { 
         document: document_cell.clone(), 
         context: context_cell.clone(),
-        program: program_cell.clone(), 
         window: window_cell.clone()
     };
 
-    let mouse_handler = match MouseHandler::new(wp.clone()) {
-        Ok(_) => {},
-        Err(err) => { alert(&format!("Mouse listener error, {}!", &err.as_string().unwrap())) }
-    };
-
-    let key_handler = match KeyHandler::new(wp.clone()) {
-        Ok(_) => {},
-        Err(err) => { alert(&format!("Key listener error, {}!", &err.as_string().unwrap())) }
-    };      
-    draw(&(*context), vert_count);
+    let input_handler = InputHandler::new(wp.clone())?;
     
     let resize_handler = Closure::<dyn FnMut()>::new(move || { 
         handle_resize(
             canvas_cell.clone(),
             context_cell.clone(),
-            window_cell.clone(),
-            vert_count)
+            window_cell.clone())
         }
     );
+
+    let base_shaders = renderer::initialize_base_shaders(context); 
+
+    let track_shader =  renderer::link_program(&context, 
+        &base_shaders[0].0, &base_shaders[0].1);
+    let interface_shader = renderer::link_program(&context, 
+        &base_shaders[1].0, &base_shaders[1].1);
+
+
+    let game_context = GameContext {
+        wp: wp.clone(),
+        track_shader: track_shader?,
+        interface_shader: interface_shader?,
+        input_handler: input_handler,
+        aspect_ratio: (16.0, 9.0),
+        camera: Camera::default()
+    };
+
+
+    let mut game = Game { track_spline: vec!() };
+    game.load_stage(&DemoStage {});
+
+    start_game_loop(game_context, game);
     // window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
     resize_handler.forget();
+
     Ok(())
-}
-
-fn draw(context: &WebGl2RenderingContext, vert_count: i32) {
-    context.clear_color(0.0, 0.0, 0.0, 1.0);
-    context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
-    //context.draw_arrays(WebGl2RenderingContext::TRIANGLES, 0, vert_count);
-    context.draw_elements_with_i32(
-        WebGl2RenderingContext::TRIANGLES, vert_count, 
-        WebGl2RenderingContext::UNSIGNED_INT, 0);
-}
-
-pub fn compile_shader(
-    context: &WebGl2RenderingContext,
-    shader_type: u32,
-    source: &str,
-) -> Result<WebGlShader, String> {
-    let shader = context
-        .create_shader(shader_type)
-        .ok_or_else(|| String::from("Unable to create shader object"))?;
-    context.shader_source(&shader, source);
-    context.compile_shader(&shader);
-
-    if context
-        .get_shader_parameter(&shader, WebGl2RenderingContext::COMPILE_STATUS)
-        .as_bool()
-        .unwrap_or(false)
-    {
-        Ok(shader)
-    } else {
-        Err(context
-            .get_shader_info_log(&shader)
-            .unwrap_or_else(|| String::from("Unknown error creating shader")))
-    }
-}
-
-pub fn link_program(
-    context: &WebGl2RenderingContext,
-    vert_shader: &WebGlShader,
-    frag_shader: &WebGlShader
-) -> Result<WebGlProgram, String> {
-    let program = context
-        .create_program()
-        .ok_or_else(|| String::from("Unable to create shader object"))?;
-
-    context.attach_shader(&program, vert_shader);
-    context.attach_shader(&program, frag_shader);
-    context.link_program(&program);
-
-    if context
-        .get_program_parameter(&program, WebGl2RenderingContext::LINK_STATUS)
-        .as_bool()
-        .unwrap_or(false) {
-        Ok(program)
-    } else {
-        Err(context
-            .get_program_info_log(&program)
-            .unwrap_or_else(|| String::from("Unknown error creating program object")))
-    }
 }

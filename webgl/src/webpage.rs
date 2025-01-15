@@ -4,6 +4,5 @@ use crate::*;
 pub struct Webpage {
 	pub document: Rc<RefCell<Document>>,
 	pub context: Rc<RefCell<WebGl2RenderingContext>>,
-	pub program: Rc<RefCell<WebGlProgram>>,
 	pub window: Rc<RefCell<Window>>
 }

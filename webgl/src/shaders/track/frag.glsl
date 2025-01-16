@@ -89,25 +89,54 @@ void main() {
     float z1= b - pow(a, 2.0)/(3.0);
     float z2= 2.0 * pow(a, 3.0)/(27.0) - (a*b/3.0) + c;
     float rooted_val = (pow(z1, 3.0) / 27.0) + (pow(z2, 2.0) / 4.0);
-    float d=sqrt(rooted_val);
+
+    //float d=sqrt(abs(rooted_val)); // <--- can't use this???
+
+    float d=0.0;
     if (rooted_val <= 0.0) {
         rooted_val = -1.0 * rooted_val;
-        d=sqrt(rooted_val);
-    }  
- 
+    } 
+    d=sqrt(rooted_val);
+
+    
 
     float diff = -z2/2.0+d;
-    float u1=pow(abs(diff), 1.0/3.0);
+    bool neg = false;
+    float u1=0.0;
     if (diff <= 0.0) {
-        u1=-u1;
+        diff = -diff;
+        neg = true;
+    } 
+    u1=pow(diff, 1.0/3.0);
+    if (neg) {
+        u1 = -u1;
     }
+
+
     diff =-z2/2.0-d;
     float u2;
 
-    u2=pow(abs(diff), 1.0/3.0);
+    neg = false;
     if (diff <= 0.0) {
-        u2=-u2;
+        diff=-diff;
+        neg = true;
     }
+    u2=pow(diff, 1.0/3.0);
+    if (neg) {
+        u2 = -u2;
+    }
+
+    if ((p.x - -0.22) < 0.01 && (p.x - -0.22) > -0.01) {
+        if ((p.y - -0.47) < 0.01 && (p.y - -0.47) > -0.01) {
+            if ((u1 - 0.2113060547) < 0.01 && (u1 - 0.2113060547) > -0.01) {
+                if ((u2 - -0.285146607264) < 0.01 && (u2 - -0.285146607264) > -0.01) {
+                    outColor=vec4(1.0, 0.0, 0.0, 1.0);
+                }
+            }
+        }  
+        return;
+    }
+    
     float x1=u1+u2;
 
     // todo: this solution is not valid when P 
@@ -129,7 +158,7 @@ void main() {
         // fragment should be discarded here, but we're using these values
         // to give an indication if the cubic equation solution failed
         outColor = vec4(expected_zero, 0.0, 0.0, 1.0);
-
+        discard;
     } else {
         float intensity = 0.7;
   
@@ -142,7 +171,6 @@ void main() {
         float d2 =  distance(p, p2);
         if (t < 0.0 && (d1 > width - edge_range)) {
             dist = d1;
-            outColor = vec4(intensity, 0.0, 0.0, 1.0);
         } else if (t > 1.0 && (d2 > width - edge_range)) {
             dist = d2;
         }

@@ -43,15 +43,12 @@ void main() {
 		// on the fragment edge.
 		p = p0 + (width * 2.0 * (p0-p2) / distance(p0, p2)); 
 		p += (width * 2.0 * (p0-p1) / distance(p0, p1)); 
-		p = vec2(-2.0, -2.0);
 	} else if (vert_equality(p, p1)) { // control node
 		p = p1 + (width * 2.0 * (p1-p0) / distance(p1, p0)); 
 		p += (width * 2.0 * (p1-p2) / distance(p1, p2)); 
-		p = vec2(0.0, 2.0);
 	} else if (vert_equality(p, p2)) { // end node
 		p = p2 + (width * 2.0 * (p2-p0) / distance(p2, p0)); 
 		p += (width * 2.0 * (p2-p1) / distance(p2, p1)); 
-		p = vec2(2.0, -2.0);
 	}
 
     gl_Position = vec4(p, 1.0, 1.0);

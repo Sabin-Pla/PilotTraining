@@ -21,10 +21,10 @@ impl FieldPosition {
 			field_clip_offset: (f32, f32)) -> (f32, f32) { 
 		// gets the location of this coordinate in clipspace, assuming camera is at origin
 
-		let aspect_ratio  = (1.0, 1.0);
+		let aspect_ratio  = (5.0, 1.0);
 		(
-			((self.x) * (aspect_ratio.1 / aspect_ratio.0)) + field_clip_offset.0,
-			((self.y) * (aspect_ratio.0 / aspect_ratio.1)) + field_clip_offset.1
+			((self.x)) + field_clip_offset.0,
+			self.y + field_clip_offset.1
 		)
 	}
 }

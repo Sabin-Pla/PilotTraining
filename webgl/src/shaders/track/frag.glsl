@@ -15,6 +15,28 @@ vec2 lerp(float t, vec2 p0, vec2 p1) {
     return p0 + t * (p1-p0);
 }
 
+vec2 complex_mult(vec2 c1, vec2 c2) {
+    return vec2(c1.x * c2.x - c1.y * c2.y, c1.x * c2.y + c1.y * c2.x); 
+}
+
+mat3x2 complex_cuberoot(float a, float b) {
+    float mag = distance(vec2(0.0,0.0), vec2(a, b));
+    vec2 unit = vec2(a, b) / mag;
+
+    float cuberoot_mag = pow(mag, 1.0/3.0);
+
+    // i.e, if input = (-8, 0), axial_cuberoot = (-2, 0) instead of (-1, -isqrt(3))
+    // straight line from origin to (a, b) goes through axial_cuberoot.
+    vec2 axial_cuberoot = cuberoot_mag * unit;
+    
+    // use cube roots of unity to return all 3 cube roots
+    vec2 e1 = vec2(-0.5, -sqrt(3.0)/2.0);
+    vec2 e2 = vec2(-0.5, sqrt(3.0)/2.0);
+    return mat3x2(
+        axial_cuberoot, 
+        complex_mult(axial_cuberoot, e1), 
+        complex_mult(axial_cuberoot, e2));
+}
 
 bool draw_bezier_node(vec2 p, vec2 p_other, vec4 node_color) {
     float node_size = 0.025;
@@ -92,10 +114,20 @@ void main() {
 
     //float d=sqrt(abs(rooted_val)); // <--- can't use this???
 
+    mat3x2 roots;
     float d=0.0;
     if (rooted_val <= 0.0) {
         rooted_val = -1.0 * rooted_val;
-    } 
+        mat3x2 cbrt = complex_cuberoot(-z2/2.0, rooted_val);
+
+        int i=0;
+        while (i < 3) {
+            i += 1;
+            float root = cbrt[i].x - z1 / (3.0 * cbrt[i].x);
+            float expected_zero = pow(root, 3.0) + z1*root + z2 ;
+            roots[i] = vec2(root, expected_zero);
+        }
+    }   
     d=sqrt(rooted_val);
 
     
@@ -126,24 +158,20 @@ void main() {
         u2 = -u2;
     }
 
-    if ((p.x - -0.22) < 0.01 && (p.x - -0.22) > -0.01) {
-        if ((p.y - -0.47) < 0.01 && (p.y - -0.47) > -0.01) {
-            if ((u1 - 0.2113060547) < 0.01 && (u1 - 0.2113060547) > -0.01) {
-                if ((u2 - -0.285146607264) < 0.01 && (u2 - -0.285146607264) > -0.01) {
-                    outColor=vec4(1.0, 0.0, 0.0, 1.0);
-                }
-            }
-        }  
-        return;
-    }
     
     float x1=u1+u2;
+    float expected_zero = pow(x1, 3.0) + z1*x1 + z2;
+    if (expected_zero > 0.001) {
+        if (roots[0].y < 0.001) {
+            x1 = roots[0].x;
+        } else if (roots[1].y < 0.001) {
+            x1 = roots[1].x;
+        } else if (roots[2].y < 0.001) {
+            x1 = roots[2].x;
+        }
+    }
 
-    // todo: this solution is not valid when P 
-    // is on the other side of the rhombus formed by p0, p1, p2, (p2 + (p0 - p1)) from P1
     float t=x1-a/3.0; 
-
-
 
     vec2 l0 = lerp(t, p0, p1);
     vec2 l1 = lerp(t, p1, p2);
@@ -152,7 +180,6 @@ void main() {
 
     //l2 = p0 +2.0*t*p1 -2.0*t*p0+pow(t, 2.0)*p2-2.0*pow(t, 2.0)*p1+pow(t, 2.0)*p0;
     float dist = distance(l2, p);
-    float expected_zero = pow(x1, 3.0) + z1*x1 + z2 ;
 
     if (dist >= width ) { 
         // fragment should be discarded here, but we're using these values
@@ -181,4 +208,17 @@ void main() {
         }
         return;
     }
+
+
+    if ((p.x - -0.22) < 0.01 && (p.x - -0.22) > -0.01) {
+        if ((p.y - -0.47) < 0.01 && (p.y - -0.47) > -0.01) {
+            if ((u1 - 0.2113060547) < 0.01 && (u1 - 0.2113060547) > -0.01) {
+                if ((u2 - -0.285146607264) < 0.01 && (u2 - -0.285146607264) > -0.01) {
+                    outColor=vec4(1.0, 0.0, 0.0, 1.0);
+                }
+            }
+        }  
+        return;
+    }
+    
 } 

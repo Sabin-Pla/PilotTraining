@@ -14,7 +14,7 @@ layout (std140) uniform u_camera {
 };
 
 layout (std140) uniform u_bezier_nodes {
-    mat3x4 nodes[1]; 
+    mat3x2 nodes[1]; 
 };
 
 layout (std140) uniform u_resolution {
@@ -23,7 +23,7 @@ layout (std140) uniform u_resolution {
 };
 
 bool vert_equality(vec2 a, vec2 b) {
-	return distance(a, b) <= 0.01;
+	return distance(a, b) <= 0.001;
 }
 
 void main() {
@@ -33,8 +33,8 @@ void main() {
 	width = 0.05;
 
 	p0 = nodes[vert_idx][0].xy;
-	p1 = nodes[vert_idx][2].xy;
-	p2 = nodes[vert_idx][1].xy;
+	p1 = nodes[vert_idx][1].xy;
+	p2 = nodes[vert_idx][2].xy;
 	vec2 p = position.xy;
 
 	if (vert_equality(p, p0)) { // start node
@@ -43,15 +43,16 @@ void main() {
 		// on the fragment edge.
 		p = p0 + (width * 2.0 * (p0-p2) / distance(p0, p2)); 
 		p += (width * 2.0 * (p0-p1) / distance(p0, p1)); 
+		p = vec2(-2.0, -2.0);
 	} else if (vert_equality(p, p1)) { // control node
 		p = p1 + (width * 2.0 * (p1-p0) / distance(p1, p0)); 
 		p += (width * 2.0 * (p1-p2) / distance(p1, p2)); 
+		p = vec2(0.0, 2.0);
 	} else if (vert_equality(p, p2)) { // end node
 		p = p2 + (width * 2.0 * (p2-p0) / distance(p2, p0)); 
 		p += (width * 2.0 * (p2-p1) / distance(p2, p1)); 
+		p = vec2(2.0, -2.0);
 	}
-
-
 
     gl_Position = vec4(p, 1.0, 1.0);
 }

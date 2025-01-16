@@ -13,7 +13,7 @@ pub struct Game {
 }
 
 // the play field is 20% to the right of the screen.
-pub const FIELD_OFFSET_X: f32 = 0.2; 
+pub const FIELD_OFFSET_X: f32 = 0.0; 
 
 impl Game {
 
@@ -128,6 +128,7 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
         WebGl2RenderingContext::TRIANGLES, 0,
         (track_spline_vertex_buffer.len() / 2) as i32);
 
+    //
     //alert(&format!("vert {:?}", track_spline_vertex_buffer));
     //alert(&format!("uni {:?}", track_nodes_uniform_buf));
     // render the UI

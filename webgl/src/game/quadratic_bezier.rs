@@ -23,10 +23,9 @@ impl QuadraticBezier {
 		let control_node = self.control_node.clipspace(aspect_ratio, field_offset);
 		let end_node = self.end_node.clipspace(aspect_ratio, field_offset);
 		[
-			start_node.0, start_node.1, 
-			control_node.0, control_node.1, 
-			end_node.0, end_node.1, 
-			0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+			start_node.0, start_node.1, 0.0, 0.0, 
+			control_node.0, control_node.1, 0.0, 0.0, 
+			end_node.0, end_node.1, 0.0, 0.0, 
 		]
 	}
 }

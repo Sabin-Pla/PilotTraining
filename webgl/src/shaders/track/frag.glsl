@@ -88,13 +88,24 @@ void main() {
 
     float z1= b - pow(a, 2.0)/(3.0);
     float z2= 2.0 * pow(a, 3.0)/(27.0) - (a*b/3.0) + c;
-    float d=pow(pow(z1, 3.0) / 27.0 + pow(z2, 2.0) / 4.0, 0.5);
+    float rooted_val = (pow(z1, 3.0) / 27.0) + (pow(z2, 2.0) / 4.0);
+    float d=sqrt(rooted_val);
+    if (rooted_val <= 0.0) {
+        rooted_val = -1.0 * rooted_val;
+        d=sqrt(rooted_val);
+    }  
+ 
 
-    float u1=pow((-z2/2.0)+d, 1.0/3.0);
-    float diff =-z2/2.0-d;
+    float diff = -z2/2.0+d;
+    float u1=pow(abs(diff), 1.0/3.0);
+    if (diff <= 0.0) {
+        u1=-u1;
+    }
+    diff =-z2/2.0-d;
     float u2;
+
     u2=pow(abs(diff), 1.0/3.0);
-    if (diff < 0.0) {
+    if (diff <= 0.0) {
         u2=-u2;
     }
     float x1=u1+u2;
@@ -103,6 +114,8 @@ void main() {
     // is on the other side of the rhombus formed by p0, p1, p2, (p2 + (p0 - p1)) from P1
     float t=x1-a/3.0; 
 
+
+
     vec2 l0 = lerp(t, p0, p1);
     vec2 l1 = lerp(t, p1, p2);
     vec2 l2 = lerp(t, l0, l1);
@@ -110,22 +123,27 @@ void main() {
 
     //l2 = p0 +2.0*t*p1 -2.0*t*p0+pow(t, 2.0)*p2-2.0*pow(t, 2.0)*p1+pow(t, 2.0)*p0;
     float dist = distance(l2, p);
-    float test = pow(x1, 3.0) + z1*x1 + z2 ;
+    float expected_zero = pow(x1, 3.0) + z1*x1 + z2 ;
 
     if (dist >= width ) { 
         // fragment should be discarded here, but we're using these values
         // to give an indication if the cubic equation solution failed
-        outColor = vec4(test, test, 0.0, 1.0);
+        outColor = vec4(expected_zero, 0.0, 0.0, 1.0);
+
     } else {
-        float intensity = 0.3;
-        outColor = vec4(intensity, intensity * 1.13, intensity, 1.0);
+        float intensity = 0.7;
+  
+        outColor = vec4(intensity * 0.4, intensity * 0.45, intensity, 1.0); 
+  
         float edge_range = width * 0.2;
 
+        
         float d1 = distance(p, p0);
         float d2 =  distance(p, p2);
-        if (t < 0.0 && d1 > width - edge_range) {
+        if (t < 0.0 && (d1 > width - edge_range)) {
             dist = d1;
-        } else if (t > 1.0 && d2 > width - edge_range) {
+            outColor = vec4(intensity, 0.0, 0.0, 1.0);
+        } else if (t > 1.0 && (d2 > width - edge_range)) {
             dist = d2;
         }
 
@@ -133,5 +151,6 @@ void main() {
         if (margin <= edge_range) {
             outColor.xyz = outColor.xyz * (1.0 - ((edge_range - margin) / edge_range));
         }
+        return;
     }
-}
+} 

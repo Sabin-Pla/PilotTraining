@@ -10,6 +10,7 @@ in vec4 res;
 out vec4 outColor;
 
 // (entity_space.xy + world_space.xy) * zoom.xy  - camera.xy;
+#define PI 3.1415926538
 
 vec2 lerp(float t, vec2 p0, vec2 p1) {
     return p0 + t * (p1-p0);
@@ -19,23 +20,37 @@ vec2 complex_mult(vec2 c1, vec2 c2) {
     return vec2(c1.x * c2.x - c1.y * c2.y, c1.x * c2.y + c1.y * c2.x); 
 }
 
-mat3x2 complex_cuberoot(float a, float b) {
+mat3x4 complex_cuberoot(float a, float b) {
     float mag = distance(vec2(0.0,0.0), vec2(a, b));
     vec2 unit = vec2(a, b) / mag;
 
+    float rad = atan(b/a);
+    if (a <= 0.0) {
+        rad += PI;
+    }
+    rad = rad / 3.0;
+
     float cuberoot_mag = pow(mag, 1.0/3.0);
 
-    // i.e, if input = (-8, 0), axial_cuberoot = (-2, 0) instead of (-1, -isqrt(3))
-    // straight line from origin to (a, b) goes through axial_cuberoot.
-    vec2 axial_cuberoot = cuberoot_mag * unit;
+    // line which line with 1/3rd the angle of (a, b) goes through.
+    vec2 primary_cuberoot = cuberoot_mag * vec2(cos(rad), sin(rad));
     
     // use cube roots of unity to return all 3 cube roots
     vec2 e1 = vec2(-0.5, -sqrt(3.0)/2.0);
     vec2 e2 = vec2(-0.5, sqrt(3.0)/2.0);
-    return mat3x2(
-        axial_cuberoot, 
-        complex_mult(axial_cuberoot, e1), 
-        complex_mult(axial_cuberoot, e2));
+    return mat3x4(
+        vec4(primary_cuberoot.xy, cuberoot_mag, rad), 
+        vec4(complex_mult(primary_cuberoot, e1), cuberoot_mag, rad), 
+        vec4(complex_mult(primary_cuberoot, e2), cuberoot_mag, rad));
+}
+
+bool is_expected(float f, float e) {
+    float limit = 0.01;
+    return ((f - e) < limit && (f - e) > -limit);
+}
+
+bool is_expected_range(float f, float e, float limit) {
+    return ((f - e) < limit && (f - e) > -limit);
 }
 
 bool draw_bezier_node(vec2 p, vec2 p_other, vec4 node_color) {
@@ -115,76 +130,54 @@ void main() {
     //float d=sqrt(abs(rooted_val)); // <--- can't use this???
 
     mat3x2 roots;
+    mat3x4 cbrt;
     float d=0.0;
+    float x1 =0.0;
     if (rooted_val <= 0.0) {
         rooted_val = -1.0 * rooted_val;
-        mat3x2 cbrt = complex_cuberoot(-z2/2.0, rooted_val);
+        cbrt = complex_cuberoot(-z2/2.0, pow(rooted_val, 0.5));
+    }  else {
+        cbrt = complex_cuberoot(-z2/2.0 + pow(rooted_val, 0.5), 0.0);
+    }
 
-        int i=0;
-        while (i < 3) {
-            i += 1;
-            float root = cbrt[i].x - z1 / (3.0 * cbrt[i].x);
-            float expected_zero = pow(root, 3.0) + z1*root + z2 ;
-            roots[i] = vec2(root, expected_zero);
+    float dist = 2.0 * width;
+    float t; 
+    vec2 l0;
+    vec2 l1;
+    vec2 l2;
+    int i=0;
+    while (i < 3) {
+        float root = cbrt[i].x - (z1 / (3.0 * cbrt[i].x));
+        float expected_zero = pow(root, 3.0) + z1*root + z2 ;
+        roots[i] = vec2(root, expected_zero);
+        t=root-a/3.0; 
+        vec2 l0 = lerp(t, p0, p1);
+        vec2 l1 = lerp(t, p1, p2);
+        vec2 l2 = lerp(t, l0, l1);
+        float dist_new = distance(l2, p);
+        if (dist_new < dist) {
+            dist = dist_new;
         }
-    }   
-    d=sqrt(rooted_val);
-
-    
-
-    float diff = -z2/2.0+d;
-    bool neg = false;
-    float u1=0.0;
-    if (diff <= 0.0) {
-        diff = -diff;
-        neg = true;
-    } 
-    u1=pow(diff, 1.0/3.0);
-    if (neg) {
-        u1 = -u1;
+        i += 1;
     }
 
 
-    diff =-z2/2.0-d;
-    float u2;
+    if (is_expected(p.x, -0.236)) {
+        if (is_expected(p.y, -0.471))  {
+            if (is_expected_range( rooted_val, -0.000261198792245, 0.005))  {
+                outColor=vec4(1.0, 0.0, 0.0, 1.0);
+            }
+            
+            //outColor=vec4(cbrt[0].z / 0.00873584, cbrt[0].z, cbrt[0].z, 1.0);
+            if (is_expected_range( t,0.01554506, 0.04))  {
+                outColor=vec4(0.0, 1.0, 0.0, 1.0);
+            }
 
-    neg = false;
-    if (diff <= 0.0) {
-        diff=-diff;
-        neg = true;
+        }  
+        return;
     }
-    u2=pow(diff, 1.0/3.0);
-    if (neg) {
-        u2 = -u2;
-    }
-
-    
-    float x1=u1+u2;
-    float expected_zero = pow(x1, 3.0) + z1*x1 + z2;
-    if (expected_zero > 0.001) {
-        if (roots[0].y < 0.001) {
-            x1 = roots[0].x;
-        } else if (roots[1].y < 0.001) {
-            x1 = roots[1].x;
-        } else if (roots[2].y < 0.001) {
-            x1 = roots[2].x;
-        }
-    }
-
-    float t=x1-a/3.0; 
-
-    vec2 l0 = lerp(t, p0, p1);
-    vec2 l1 = lerp(t, p1, p2);
-    vec2 l2 = lerp(t, l0, l1);
-
-
-    //l2 = p0 +2.0*t*p1 -2.0*t*p0+pow(t, 2.0)*p2-2.0*pow(t, 2.0)*p1+pow(t, 2.0)*p0;
-    float dist = distance(l2, p);
 
     if (dist >= width ) { 
-        // fragment should be discarded here, but we're using these values
-        // to give an indication if the cubic equation solution failed
-        outColor = vec4(expected_zero, 0.0, 0.0, 1.0);
         discard;
     } else {
         float intensity = 0.7;
@@ -210,15 +203,5 @@ void main() {
     }
 
 
-    if ((p.x - -0.22) < 0.01 && (p.x - -0.22) > -0.01) {
-        if ((p.y - -0.47) < 0.01 && (p.y - -0.47) > -0.01) {
-            if ((u1 - 0.2113060547) < 0.01 && (u1 - 0.2113060547) > -0.01) {
-                if ((u2 - -0.285146607264) < 0.01 && (u2 - -0.285146607264) > -0.01) {
-                    outColor=vec4(1.0, 0.0, 0.0, 1.0);
-                }
-            }
-        }  
-        return;
-    }
-    
+
 } 

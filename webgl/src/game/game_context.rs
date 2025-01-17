@@ -18,5 +18,20 @@ impl GameContext {
 	   // alert(&format!("uni {:?}", (width, height)));
 	    (width as f32, height as f32)
 	}
+
+	pub fn mouse_internal_resolution(&self) -> (f32, f32) {
+		let document = self.wp.document.clone();
+	    let document = document.borrow();
+		let canvas = document.get_element_by_id("canvas").unwrap();
+	    let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>().unwrap();
+	    let canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
+
+		let context = self.wp.context.clone();
+	    let context = context.borrow();
+	    let (width, height) =  (canvas.width() as f32, canvas.height() as f32);
+		//alert(&format!("uni {:?}", (width, height)));
+	    (width, height)
+	}
+
 }
 

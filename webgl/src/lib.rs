@@ -50,11 +50,16 @@ fn handle_resize(
     let context = &context.borrow_mut();
     let (width, height) = get_viewport_dim(&*window);
     canvas.set_width(width);
-   canvas.set_height(height);
-   //  alert(&format!("uni {:?}", (width, height)));
+    canvas.set_height(height);
+   // alert(&format!("uni {:?}", (width, height)));
+
+
+   // MAKE RESIZABLE
+       context.scissor(0, 0, width.try_into().unwrap(), height.try_into().unwrap());
+
     context.viewport(0, 0,  
-        canvas.width().try_into().unwrap(),
-        canvas.height().try_into().unwrap());
+        width.try_into().unwrap(),
+        height.try_into().unwrap());
 }
 
 #[wasm_bindgen]
@@ -88,11 +93,11 @@ fn start() -> Result<(), JsValue> {
     canvas.style().set_property("position", "relative")?;
     canvas.style().set_property("margin", "auto")?;
 
-    canvas.style().set_property("width", "auto")?;
+    canvas.style().set_property("width", "500px")?;
     canvas.style().set_property("height", "auto")?;
     //canvas.style().set_property("width", &width.to_string())?;
     canvas.style().set_property("display", "block")?;
-    //canvas.style().set_property("aspect-ratio", "16.0 / 9.0")?;
+   //s canvas.style().set_property("aspect-ratio", "16.0 / 9.0")?;
 
     let canvas_cell = Rc::new(RefCell::new(canvas));
     let canvas = canvas_cell.clone();

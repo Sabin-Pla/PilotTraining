@@ -15,11 +15,12 @@ impl MouseHandler {
 
 	pub fn handle_press(&mut self, event: MouseEvent) {
 		self.buffer.is_held = true;
+		alert(&format!("uni {:?}", self.buffer));
 		self.handle_move(event);
 	}
 
 	pub fn handle_move(&mut self, event: MouseEvent) {
-		self.buffer.current_pos = (event.x() as f32, event.y() as f32);
+		self.buffer.current_pos = (event.offset_x() as f32, event.offset_y() as f32);
 	}
 
 
@@ -69,7 +70,7 @@ fn make_mouse_handler(wp:Webpage) -> Result<Rc<RefCell<MouseHandler>>, JsValue> 
 	);
 
 
-	canvas.set_onclick(Some(press_handler.as_ref().unchecked_ref()));
+	canvas.set_onmousedown(Some(press_handler.as_ref().unchecked_ref()));
 	canvas.set_onmouseup(Some(release_handler.as_ref().unchecked_ref()));
 	canvas.set_onmousemove(Some(move_handler.as_ref().unchecked_ref()));
 	press_handler.forget();

@@ -20,6 +20,12 @@ vec2 complex_mult(vec2 c1, vec2 c2) {
     return vec2(c1.x * c2.x - c1.y * c2.y, c1.x * c2.y + c1.y * c2.x); 
 }
 
+vec2 complex_recip(vec2 c) {
+    return vec2(
+        c.x / (pow(c.x, 2.0) + pow(c.y, 2.0)), 
+        -c.y / (pow(c.x, 2.0) + pow(c.y, 2.0)));
+}
+
 mat3x4 complex_cuberoot(float a, float b) {
     float mag = distance(vec2(0.0,0.0), vec2(a, b));
     vec2 unit = vec2(a, b) / mag;
@@ -145,37 +151,33 @@ void main() {
     vec2 l0;
     vec2 l1;
     vec2 l2;
+    vec2 last_l2;
+    float used_root;
+    float testval;
     int i=0;
     while (i < 3) {
         float root = cbrt[i].x - (z1 / (3.0 * cbrt[i].x));
+        //  ^ fix this. should be complex subtraction
+        vec2 recip = complex_recip(cbrt[i].xy);
+        root = cbrt[i].x - (z1/3.0 * recip.x);
+        testval = pow(cbrt[i].x, 2.0) + pow(cbrt[i].y, 2.0);
+
         float expected_zero = pow(root, 3.0) + z1*root + z2 ;
         roots[i] = vec2(root, expected_zero);
-        t=root-a/3.0; 
-        vec2 l0 = lerp(t, p0, p1);
-        vec2 l1 = lerp(t, p1, p2);
-        vec2 l2 = lerp(t, l0, l1);
+        float t_temp=root-a/3.0; 
+        vec2 l0 = lerp(t_temp, p0, p1);
+        vec2 l1 = lerp(t_temp, p1, p2);
+        vec2 l2 = lerp(t_temp, l0, l1);
         float dist_new = distance(l2, p);
         if (dist_new < dist) {
+            last_l2 = l2;
             dist = dist_new;
+            t = t_temp;
+            used_root = root;
         }
         i += 1;
     }
 
-
-    if (is_expected(p.x, -0.236)) {
-        if (is_expected(p.y, -0.471))  {
-            if (is_expected_range( rooted_val, -0.000261198792245, 0.005))  {
-                outColor=vec4(1.0, 0.0, 0.0, 1.0);
-            }
-            
-            //outColor=vec4(cbrt[0].z / 0.00873584, cbrt[0].z, cbrt[0].z, 1.0);
-            if (is_expected_range( t,0.01554506, 0.04))  {
-                outColor=vec4(0.0, 1.0, 0.0, 1.0);
-            }
-
-        }  
-        return;
-    }
 
     if (dist >= width ) { 
         discard;

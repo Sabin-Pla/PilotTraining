@@ -25,6 +25,7 @@ impl InputHandler {
 
 	pub fn mouse_clipspace_coords(&self, x_resolution: f32, y_resolution: f32) -> (f32, f32) {
 		let mouse_handler = self.mouse_handler.borrow();
+		//alert(&format!("uni {:?}", (x_resolution, y_resolution)));
 		mouse_handler.mouse_clipspace_coords(x_resolution, y_resolution)
 	}
 }

@@ -92,6 +92,7 @@ pub fn start_game_loop(mut game_context: GameContext, mut game: Game) {
 
 fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
     let (pixels_x, pixels_y) = game_context.internal_resolution();
+    //alert(&format!("vert {:?}", (pixels_x, pixels_y) ));
     let (aspect_x, aspect_y) = game_context.aspect_ratio;
     let (mouse_x, mouse_y) = game_context.input_handler.mouse_clipspace_coords(pixels_x, pixels_y);
 	let wgl_context = game_context.wp.context.clone();

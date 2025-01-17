@@ -9,7 +9,7 @@ impl Default for MouseBuffer {
 	fn default() -> Self {
 		Self {
 			is_held: false,
-			current_pos: (100.0, 100.0)
+			current_pos: (0.0, 0.0)
 		}
 	}
 }

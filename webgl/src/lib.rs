@@ -27,8 +27,8 @@ use game::*;
 
 pub use game::QuadraticBezier;
 
-const GAME_ASPECT_X: f32  = 16.0;
-const GAME_ASPECT_Y: f32  = 9.0;
+const GAME_ASPECT_X: f32  = 1.0;
+const GAME_ASPECT_Y: f32  = 1.0;
 
 #[wasm_bindgen]
 extern "C" {
@@ -36,8 +36,8 @@ extern "C" {
 }
 
 pub fn get_viewport_dim(window: &Window) -> (u32, u32) {
-    let width = window.inner_width().unwrap().as_f64().unwrap() * 0.98;
-    let height = window.inner_height().unwrap().as_f64().unwrap() * 0.98;
+    let width = window.inner_width().unwrap().as_f64().unwrap();
+    let height = window.inner_height().unwrap().as_f64().unwrap();
     (width as u32, height as u32)
 }
 
@@ -49,11 +49,12 @@ fn handle_resize(
     let canvas = canvas.borrow_mut();
     let context = &context.borrow_mut();
     let (width, height) = get_viewport_dim(&*window);
- //   canvas.set_width(width);
-  //  canvas.set_height(height);
- // //  context.viewport(0, 0,  
- //       canvas.width().try_into().unwrap(),
-  //      canvas.height().try_into().unwrap());
+    canvas.set_width(width);
+   canvas.set_height(height);
+   //  alert(&format!("uni {:?}", (width, height)));
+    context.viewport(0, 0,  
+        canvas.width().try_into().unwrap(),
+        canvas.height().try_into().unwrap());
 }
 
 #[wasm_bindgen]
@@ -87,15 +88,16 @@ fn start() -> Result<(), JsValue> {
     canvas.style().set_property("position", "relative")?;
     canvas.style().set_property("margin", "auto")?;
 
-    //canvas.style().set_property("width", "600px")?;
+    canvas.style().set_property("width", "auto")?;
+    canvas.style().set_property("height", "auto")?;
     //canvas.style().set_property("width", &width.to_string())?;
     canvas.style().set_property("display", "block")?;
-    canvas.style().set_property("aspect-ratio", "16.0 / 9.0")?;
-
+    //canvas.style().set_property("aspect-ratio", "16.0 / 9.0")?;
 
     let canvas_cell = Rc::new(RefCell::new(canvas));
     let canvas = canvas_cell.clone();
     let canvas = canvas.borrow_mut();
+
     let context = canvas
         .get_context("webgl2")?
         .unwrap()
@@ -142,7 +144,7 @@ fn start() -> Result<(), JsValue> {
     game.load_stage(&DemoStage {});
 
     start_game_loop(game_context, game);
-    // window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
+    window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
     resize_handler.forget();
     
     Ok(())

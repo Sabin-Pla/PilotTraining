@@ -19,7 +19,7 @@ impl MouseHandler {
 	}
 
 	pub fn handle_move(&mut self, event: MouseEvent) {
-		self.buffer.current_pos = (event.offset_x() as f32, event.offset_y() as f32);
+		self.buffer.current_pos = (event.x() as f32, event.y() as f32);
 	}
 
 
@@ -45,6 +45,10 @@ fn make_mouse_handler(wp:Webpage) -> Result<Rc<RefCell<MouseHandler>>, JsValue> 
 	let move_handler = mouse_handler_cell.clone(); 
 	let document = wp.document.clone();
 	let document = document.borrow();
+	let canvas = document.get_element_by_id("canvas").unwrap();
+    let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>()?;
+    let canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
+
 
 	let press_handler = Closure::<dyn FnMut(_)>::new(
 		move |event: MouseEvent| {
@@ -65,9 +69,9 @@ fn make_mouse_handler(wp:Webpage) -> Result<Rc<RefCell<MouseHandler>>, JsValue> 
 	);
 
 
-	document.set_onclick(Some(press_handler.as_ref().unchecked_ref()));
-	document.set_onmouseup(Some(release_handler.as_ref().unchecked_ref()));
-	document.set_onmousemove(Some(move_handler.as_ref().unchecked_ref()));
+	canvas.set_onclick(Some(press_handler.as_ref().unchecked_ref()));
+	canvas.set_onmouseup(Some(release_handler.as_ref().unchecked_ref()));
+	canvas.set_onmousemove(Some(move_handler.as_ref().unchecked_ref()));
 	press_handler.forget();
 	release_handler.forget();
 	move_handler.forget();

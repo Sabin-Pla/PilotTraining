@@ -15,11 +15,12 @@ impl GameContext {
 		let document = self.wp.document.clone();
 		let document = document.borrow();
 		let canvas = document.get_element_by_id("canvas").unwrap();
-    let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>().unwrap();
-    let mut canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
+	    let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>().unwrap();
+	    let mut canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
 		let (width, height): (f32, f32) = (
 	    	canvas.width() as f32,
-	    	canvas.height() as f32);
+    	canvas.height() as f32);
+    	//alert(&format!("uni {:?}", (width, height)));
 		(width, height)
 	}
 

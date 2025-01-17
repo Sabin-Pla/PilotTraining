@@ -29,7 +29,7 @@ impl MouseHandler {
 
 	pub fn mouse_clipspace_coords(&self, x_resolution: f32, y_resolution: f32) -> (f32, f32) {
 		let (x, y) = self.buffer.current_pos;
-		(x / x_resolution - 0.5, y / y_resolution - 0.5)
+		(x / x_resolution, y / y_resolution)
 	}
 
 

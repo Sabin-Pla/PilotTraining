@@ -27,14 +27,17 @@ use game::*;
 
 pub use game::QuadraticBezier;
 
+const GAME_ASPECT_X: f32  = 16.0;
+const GAME_ASPECT_Y: f32  = 9.0;
+
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
 }
 
 fn get_viewport_dim(window: &Window) -> (u32, u32) {
-    let width = window.outer_width().unwrap().as_f64().unwrap() * 0.8;
-    let height = window.outer_height().unwrap().as_f64().unwrap() * 0.8;
+    let width = window.outer_width().unwrap().as_f64().unwrap() * 0.98;
+    let height = window.outer_height().unwrap().as_f64().unwrap() * 0.98;
     (width as u32, height as u32)
 }
 
@@ -86,7 +89,8 @@ fn start() -> Result<(), JsValue> {
 
     canvas.style().set_property("width", "500px")?;
     canvas.style().set_property("display", "block")?;
-    canvas.style().set_property("aspect-ratio", "1 / 1")?;
+    canvas.style().set_property("aspect-ratio", "16.0 / 9.0")?;
+
 
     let canvas_cell = Rc::new(RefCell::new(canvas));
     let canvas = canvas_cell.clone();
@@ -128,7 +132,7 @@ fn start() -> Result<(), JsValue> {
         track_shader: track_shader?,
         interface_shader: interface_shader?,
         input_handler: input_handler,
-        aspect_ratio: (16.0, 9.0),
+        aspect_ratio: (GAME_ASPECT_X, GAME_ASPECT_Y),
         camera: Camera::default()
     };
 

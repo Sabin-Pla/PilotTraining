@@ -21,10 +21,15 @@ impl FieldPosition {
 			field_clip_offset: (f32, f32)) -> (f32, f32) { 
 		// gets the location of this coordinate in clipspace, assuming camera is at origin
 
-		let aspect_ratio  = (5.0, 1.0);
-		(
-			((self.x)) + field_clip_offset.0,
-			self.y + field_clip_offset.1
-		)
+		let mut x = self.x;
+		let mut y = self.y;
+		//alert(&format!("uni {:?}", aspect_ratio));
+		if aspect_ratio.0 > aspect_ratio.1 {
+			x /= aspect_ratio.0 / aspect_ratio.1;
+		} else {
+			y /= aspect_ratio.1 / aspect_ratio.0;
+		}
+
+		(x + field_clip_offset.0, y + field_clip_offset.1)
 	}
 }

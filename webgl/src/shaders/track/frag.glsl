@@ -99,7 +99,7 @@ void main() {
 
     vec2 p = (gl_FragCoord.xy / res.xy - (0.5, 0.5)) * 2.0; 
 
-    if (draw_bezier_node(p, p0,  vec4(0.2, 0.2, 0.9, 1.0))) {
+    if (draw_bezier_node(p, p0,  vec4(0.9, 0.9, 0.9, 1.0))) {
         return; 
     }
     

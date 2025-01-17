@@ -14,11 +14,10 @@ pub struct DemoStage {}
 
 impl Stage for DemoStage {
 	fn track_spline(&self) -> Vec<FieldPosition> {
-		let offset = -0.4;
 		DEMO_STAGE_BEZIER_NODES
 			.chunks_exact(2).map(|v| 
 				FieldPosition {
-					x: v[0] / 2.0 , 
+					x: v[0], 
 					y: v[1] 
 				})
 			.collect()

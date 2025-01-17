@@ -133,6 +133,7 @@ void main() {
     float z2= 2.0 * pow(a, 3.0)/(27.0) - (a*b/3.0) + c;
     float rooted_val = (pow(z1, 3.0) / 27.0) + (pow(z2, 2.0) / 4.0);
 
+
     //float d=sqrt(abs(rooted_val)); // <--- can't use this???
 
     mat3x2 roots;
@@ -146,15 +147,65 @@ void main() {
         cbrt = complex_cuberoot(-z2/2.0 + pow(rooted_val, 0.5), 0.0);
     }
 
-    float dist = 2.0 * width;
+
+
+  d=sqrt(rooted_val);
+
+    
+
+    float diff = -z2/2.0+d;
+    bool neg = false;
+    float u1=0.0;
+    if (diff <= 0.0) {
+        diff = -diff;
+        neg = true;
+    } 
+    u1=pow(diff, 1.0/3.0);
+    if (neg) {
+        u1 = -u1;
+    }
+
+
+    diff =-z2/2.0-d;
+    float u2;
+
+    neg = false;
+    if (diff <= 0.0) {
+        diff=-diff;
+        neg = true;
+    }
+    u2=pow(diff, 1.0/3.0);
+    if (neg) {
+        u2 = -u2;
+    }
+
+    x1=u1+u2;
+
+    int i=0;
     float t; 
+    float dist = 2.0 * width;
+    float used_root;
+    if (is_expected_range(z1, 0.0, 0.001)) {
+        outColor = vec4(1.0, 0.0, 0.0, 1.0);
+        i=3;
+        float t_temp=x1-a/3.0; 
+        vec2 l0 = lerp(t_temp, p0, p1);
+        vec2 l1 = lerp(t_temp, p1, p2);
+        vec2 l2 = lerp(t_temp, l0, l1);
+        float dist_new = distance(l2, p);
+        if (dist_new < dist) {
+            dist = dist_new;
+            t = t_temp;
+            used_root = x1;
+        }
+    }
+
     vec2 l0;
     vec2 l1;
     vec2 l2;
-    vec2 last_l2;
-    float used_root;
+    
     float testval;
-    int i=0;
+    
     while (i < 3) {
         float root = cbrt[i].x - (z1 / (3.0 * cbrt[i].x));
         //  ^ fix this. should be complex subtraction
@@ -170,7 +221,6 @@ void main() {
         vec2 l2 = lerp(t_temp, l0, l1);
         float dist_new = distance(l2, p);
         if (dist_new < dist) {
-            last_l2 = l2;
             dist = dist_new;
             t = t_temp;
             used_root = root;

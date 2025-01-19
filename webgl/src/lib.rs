@@ -76,9 +76,7 @@ fn get_raster_res(
     // (the actual rendering resolution, not the number of onscreen pixels.)
 
     let mut dim = get_viewport_dim(window);
-    //alert(&format!("dim {:?}", dim ));
     adjust_aspect(&mut dim, aspect_ratio);
-    //alert(&format!("dim {:?}", dim ));
     dim.0 *= super_sampling_ratio * screen_ratio; 
     dim.1 *= super_sampling_ratio * screen_ratio; 
     (dim.0 as u32, dim.1 as u32)
@@ -116,16 +114,12 @@ fn handle_resize(wp: Webpage) {
         screen_ratio,
         aspect_ratio);
 
-   // let (width, height) = get_viewport_dim(&*window);
     canvas.set_width(raster_x);
     canvas.set_height(raster_y);
-    //alert(&format!("uni {:?}", (raster_x, raster_y)));
    if raster_x > raster_y  {
         canvas.style().set_property("height", &pixels_y.to_string()).unwrap();
-        alert(&format!("height bound {:?} {:?}", (raster_x, raster_y), (pixels_x, pixels_y)));
     } else {
         canvas.style().set_property("width", &pixels_x.to_string()).unwrap();
-        alert(&format!("width bound {:?}", (raster_x, raster_y)));
     }
 
    // MAKE RESIZABLE
@@ -172,7 +166,7 @@ fn start() -> Result<(), JsValue> {
     canvas.style().set_property("position", "relative")?;
     canvas.style().set_property("margin", "auto")?;
 
-    alert(&format!("{:?} {:?}", &(pixels_x, pixels_y), & (raster_x, raster_y)));
+    // alert(&format!("{:?} {:?}", &(pixels_x, pixels_y), & (raster_x, raster_y)));
     
     canvas.set_width(raster_x);
     canvas.set_height(raster_y);

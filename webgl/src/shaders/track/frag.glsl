@@ -149,7 +149,7 @@ void main() {
 
 
 
-  d=sqrt(rooted_val);
+    d=sqrt(rooted_val);
 
     
 
@@ -203,6 +203,7 @@ void main() {
     vec2 l0;
     vec2 l1;
     vec2 l2;
+    vec2 l; // from P to center of curve
     
     float testval;
     
@@ -218,36 +219,52 @@ void main() {
         float t_temp=root-a/3.0; 
         vec2 l0 = lerp(t_temp, p0, p1);
         vec2 l1 = lerp(t_temp, p1, p2);
-        vec2 l2 = lerp(t_temp, l0, l1);
+        l2 = lerp(t_temp, l0, l1);
         float dist_new = distance(l2, p);
         if (dist_new < dist) {
             dist = dist_new;
             t = t_temp;
             used_root = root;
+            l = (l2 - p);
+
         }
         i += 1;
     }
 
+    float w = width;
+    float scale_factor = 1.0;
+    if (l.x < 0.0 && l.y > 0.0 ||  l.y > 0.0 && l.x > 0.0  ) {
+        // is along the inside of curve
+        if (l.x < 0.0) { // in progress, try and correct for aspect ratio
+            scale_factor = 1.0 - dot(l, vec2(-1.0, 0.0)) / length(l);
+            outColor = vec4( scale_factor, 0.0, 0.0, 1.0);
+            w += width * 2.0 * scale_factor;
+            //return;
+        }
+    }
 
-    if (dist >= width ) { 
+
+    //dist = dist / dot((l2 - p), vec2(2.0, 1.0));
+
+    if (dist >= w ) { 
         discard;
     } else {
         float intensity = 0.7;
   
         outColor = vec4(intensity * 0.4, intensity * 0.45, intensity, 1.0); 
   
-        float edge_range = width * 0.2;
+        float edge_range = w * 0.2;
 
         
         float d1 = distance(p, p0);
         float d2 =  distance(p, p2);
-        if (t < 0.0 && (d1 > width - edge_range)) {
+        if (t < 0.0 && (d1 > w - edge_range)) {
             dist = d1;
-        } else if (t > 1.0 && (d2 > width - edge_range)) {
+        } else if (t > 1.0 && (d2 > w - edge_range)) {
             dist = d2;
         }
 
-        float margin = width - dist;
+        float margin = w - dist;
         if (margin <= edge_range) {
             outColor.xyz = outColor.xyz * (1.0 - ((edge_range - margin) / edge_range));
         }

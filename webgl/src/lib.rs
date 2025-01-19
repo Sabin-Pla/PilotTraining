@@ -38,8 +38,8 @@ extern "C" {
 }
 
 pub fn get_viewport_dim(window: &Window) -> (f32, f32) {
-    let width = window.inner_width().unwrap().as_f64().unwrap();
-    let height = window.inner_height().unwrap().as_f64().unwrap();
+    let width = window.outer_width().unwrap().as_f64().unwrap();
+    let height = window.outer_height().unwrap().as_f64().unwrap();
     (width as f32, height as f32)
 }
 
@@ -148,9 +148,7 @@ fn start() -> Result<(), JsValue> {
     if raster_x > raster_y  {
         canvas.style().set_property("height", &pixels_y.to_string())?;
     } else {
-        //alert(&format!("limiting to width" ));
         canvas.style().set_property("width", &pixels_x.to_string())?;
-        //alert(&format!("{}", width as f32 * GAME_ASPECT_Y /GAME_ASPECT_X));
     }
     canvas.style().set_property("display", "block")?;
     canvas.style().set_property("aspect-ratio", &format!("{} / {}", aspect_ratio.0, aspect_ratio.1))?;

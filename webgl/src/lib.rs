@@ -45,11 +45,25 @@ pub fn get_viewport_dim(window: &Window) -> (f32, f32) {
 
 fn adjust_aspect(dim: &mut (f32, f32), aspect_ratio: (f32, f32)) {
     if dim.0 > dim.1 {
-        // viewport is height-bound
-        dim.0 = dim.1 as f32 * aspect_ratio.0 / aspect_ratio.1;
+        let preferred_width = dim.1 as f32 * aspect_ratio.0 / aspect_ratio.1;
+        if preferred_width > dim.0 {
+            // can't use this aspect ratio with this height.
+            dim.1 = dim.0 as f32 * aspect_ratio.1 / aspect_ratio.0;
+            return
+        } else {
+            // viewport is height-bound, keep height as-is and adjust width
+            dim.0 = dim.1 as f32 * aspect_ratio.0 / aspect_ratio.1;
+        }
     } else {
-        // viewport is width-bound
-        dim.1 = dim.0 as f32 * aspect_ratio.1 / aspect_ratio.0;
+        let preferred_height = dim.0 as f32 * aspect_ratio.1 / aspect_ratio.0;
+        if preferred_height > dim.1 {
+            // can't use this aspect ratio with this width.
+            dim.0 = dim.1 as f32 * aspect_ratio.0 / aspect_ratio.1;
+            return
+        } else {
+            // viewport is width-bound, keep width as-is and adjust height
+            dim.1 = dim.0 as f32 * aspect_ratio.1 / aspect_ratio.0;
+        }
     }
 }
 
@@ -81,25 +95,43 @@ fn get_screen_res(
     ((dim.0 * screen_ratio) as u32, (dim.1 * screen_ratio) as u32)
 }
 
-fn handle_resize( 
-        canvas: Rc<RefCell<HtmlCanvasElement>>,
-        context: Rc<RefCell<WebGl2RenderingContext>>,
-        window: Rc<RefCell<Window>>) {
-    let window = window.borrow_mut();
-    let canvas = canvas.borrow_mut();
-    let context = &context.borrow_mut();
-   // let (width, height) = get_viewport_dim(&*window);
-    //canvas.set_width(width);
-    //canvas.set_height(height);
-   // alert(&format!("uni {:?}", (width, height)));
+fn handle_resize(wp: Webpage) {
+    let window = wp.window.clone();
+    let window = window.borrow();
+    let context = wp.context.clone();
+    let context = context.borrow();
+    let document = wp.document.clone();
+    let document = document.borrow();
+    let aspect_ratio = (GAME_ASPECT_X, GAME_ASPECT_Y);
+    let screen_ratio = DEFAULT_SCREEN_RATIO;
+    let super_sampling_ratio = DEFAULT_SUPER_SAMPLING_RATIO;
+    let canvas = document.get_element_by_id("canvas").unwrap();
+    let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>().unwrap();
+    let canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
 
+    let (pixels_x, pixels_y) = get_screen_res(&*window, screen_ratio, aspect_ratio);
+    let (raster_x, raster_y) = get_raster_res(
+        &window, 
+        super_sampling_ratio, 
+        screen_ratio,
+        aspect_ratio);
+
+   // let (width, height) = get_viewport_dim(&*window);
+    canvas.set_width(raster_x);
+    canvas.set_height(raster_y);
+    //alert(&format!("uni {:?}", (raster_x, raster_y)));
+   if raster_x > raster_y  {
+        canvas.style().set_property("height", &pixels_y.to_string()).unwrap();
+        alert(&format!("height bound {:?} {:?}", (raster_x, raster_y), (pixels_x, pixels_y)));
+    } else {
+        canvas.style().set_property("width", &pixels_x.to_string()).unwrap();
+        alert(&format!("width bound {:?}", (raster_x, raster_y)));
+    }
 
    // MAKE RESIZABLE
-  //  context.scissor(0, 0, width.try_into().unwrap(), height.try_into().unwrap());
+   context.scissor(0, 0, pixels_x.try_into().unwrap(), pixels_y.try_into().unwrap());
 
-  //  context.viewport(0, 0,  
-  //      width.try_into().unwrap(),
-   //     height.try_into().unwrap());
+    context.viewport(0, 0, raster_x.try_into().unwrap(), raster_y.try_into().unwrap());
 }
 
 #[wasm_bindgen]
@@ -172,12 +204,9 @@ fn start() -> Result<(), JsValue> {
     };
 
     let input_handler = InputHandler::new(wp.clone())?;
-    
+    let resize_wp = wp.clone();
     let resize_handler = Closure::<dyn FnMut()>::new(move || { 
-        handle_resize(
-            canvas_cell.clone(),
-            context_cell.clone(),
-            window_cell.clone())
+            handle_resize(resize_wp.clone());
         }
     );
 

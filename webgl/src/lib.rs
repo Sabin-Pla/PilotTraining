@@ -27,18 +27,58 @@ use game::*;
 
 pub use game::QuadraticBezier;
 
-const GAME_ASPECT_X: f32  = 1.0;
+const GAME_ASPECT_X: f32  = 2.0;
 const GAME_ASPECT_Y: f32  = 1.0;
+const DEFAULT_SUPER_SAMPLING_RATIO: f32 = 2.0; // render at twice the display res
+const DEFAULT_SCREEN_RATIO: f32 = 0.75; // portion of screen space to take up
 
 #[wasm_bindgen]
 extern "C" {
     fn alert(s: &str);
 }
 
-pub fn get_viewport_dim(window: &Window) -> (u32, u32) {
+pub fn get_viewport_dim(window: &Window) -> (f32, f32) {
     let width = window.inner_width().unwrap().as_f64().unwrap();
     let height = window.inner_height().unwrap().as_f64().unwrap();
-    (width as u32, height as u32)
+    (width as f32, height as f32)
+}
+
+fn adjust_aspect(dim: &mut (f32, f32), aspect_ratio: (f32, f32)) {
+    if dim.0 > dim.1 {
+        // viewport is height-bound
+        dim.0 = dim.1 as f32 * aspect_ratio.0 / aspect_ratio.1;
+    } else {
+        // viewport is width-bound
+        dim.1 = dim.0 as f32 * aspect_ratio.1 / aspect_ratio.0;
+    }
+}
+
+fn get_raster_res(
+        window: &Window, 
+        super_sampling_ratio: f32, 
+        screen_ratio: f32, 
+        aspect_ratio: (f32, f32)) -> (u32, u32) {
+    // gets the display dimensions as recognized by the rasterizer
+    // (the actual rendering resolution, not the number of onscreen pixels.)
+
+    let mut dim = get_viewport_dim(window);
+    //alert(&format!("dim {:?}", dim ));
+    adjust_aspect(&mut dim, aspect_ratio);
+    //alert(&format!("dim {:?}", dim ));
+    dim.0 *= super_sampling_ratio * screen_ratio; 
+    dim.1 *= super_sampling_ratio * screen_ratio; 
+    (dim.0 as u32, dim.1 as u32)
+}
+
+fn get_screen_res(
+        window: &Window,         
+        screen_ratio: f32, 
+        aspect_ratio: (f32, f32)) -> (u32, u32) {
+    // gets the dimensions of the image drawn to the screen
+
+    let mut dim = get_viewport_dim(window);
+    adjust_aspect(&mut dim, aspect_ratio);
+    ((dim.0 * screen_ratio) as u32, (dim.1 * screen_ratio) as u32)
 }
 
 fn handle_resize( 
@@ -48,18 +88,18 @@ fn handle_resize(
     let window = window.borrow_mut();
     let canvas = canvas.borrow_mut();
     let context = &context.borrow_mut();
-    let (width, height) = get_viewport_dim(&*window);
-    canvas.set_width(width);
-    canvas.set_height(height);
+   // let (width, height) = get_viewport_dim(&*window);
+    //canvas.set_width(width);
+    //canvas.set_height(height);
    // alert(&format!("uni {:?}", (width, height)));
 
 
    // MAKE RESIZABLE
-       context.scissor(0, 0, width.try_into().unwrap(), height.try_into().unwrap());
+  //  context.scissor(0, 0, width.try_into().unwrap(), height.try_into().unwrap());
 
-    context.viewport(0, 0,  
-        width.try_into().unwrap(),
-        height.try_into().unwrap());
+  //  context.viewport(0, 0,  
+  //      width.try_into().unwrap(),
+   //     height.try_into().unwrap());
 }
 
 #[wasm_bindgen]
@@ -85,19 +125,35 @@ fn start() -> Result<(), JsValue> {
     let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>()?;
     let canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>()?;
 
-    let (width, height) = get_viewport_dim(&*window);
-    canvas.set_width(width);
-    canvas.set_height(height);
+    let aspect_ratio = (GAME_ASPECT_X, GAME_ASPECT_Y);
+    let screen_ratio = DEFAULT_SCREEN_RATIO;
+    let super_sampling_ratio = DEFAULT_SUPER_SAMPLING_RATIO;
+
+    let (pixels_x, pixels_y) = get_screen_res(&*window, screen_ratio, aspect_ratio);
+    let (raster_x, raster_y) = get_raster_res(
+        &window, 
+        super_sampling_ratio, 
+        screen_ratio,
+        aspect_ratio);
 
     body.style().set_property("margin", "0px")?;
     canvas.style().set_property("position", "relative")?;
     canvas.style().set_property("margin", "auto")?;
 
-    canvas.style().set_property("width", "500px")?;
-    canvas.style().set_property("height", "auto")?;
-    //canvas.style().set_property("width", &width.to_string())?;
+    alert(&format!("{:?} {:?}", &(pixels_x, pixels_y), & (raster_x, raster_y)));
+    
+    canvas.set_width(raster_x);
+    canvas.set_height(raster_y);
+
+    if raster_x > raster_y  {
+        canvas.style().set_property("height", &pixels_y.to_string())?;
+    } else {
+        //alert(&format!("limiting to width" ));
+        canvas.style().set_property("width", &pixels_x.to_string())?;
+        //alert(&format!("{}", width as f32 * GAME_ASPECT_Y /GAME_ASPECT_X));
+    }
     canvas.style().set_property("display", "block")?;
-   //s canvas.style().set_property("aspect-ratio", "16.0 / 9.0")?;
+    canvas.style().set_property("aspect-ratio", &format!("{} / {}", aspect_ratio.0, aspect_ratio.1))?;
 
     let canvas_cell = Rc::new(RefCell::new(canvas));
     let canvas = canvas_cell.clone();
@@ -140,7 +196,9 @@ fn start() -> Result<(), JsValue> {
         track_shader: track_shader?,
         interface_shader: interface_shader?,
         input_handler: input_handler,
-        aspect_ratio: (GAME_ASPECT_X, GAME_ASPECT_Y),
+        aspect_ratio,
+        screen_ratio,
+        super_sampling_ratio,
         camera: Camera::default()
     };
 

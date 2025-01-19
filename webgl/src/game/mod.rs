@@ -91,7 +91,7 @@ pub fn start_game_loop(mut game_context: GameContext, mut game: Game) {
 
 
 fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
-    let (pixels_x, pixels_y) = game_context.internal_resolution();
+    let (pixels_x, pixels_y) = game_context.display_resolution();
     let (canvas_x, canvas_y) = game_context.mouse_internal_resolution();
     //alert(&format!("vert {:?}", (pixels_x, pixels_y) ));
     let (aspect_x, aspect_y) = game_context.aspect_ratio;

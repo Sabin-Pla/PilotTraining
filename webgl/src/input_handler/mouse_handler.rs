@@ -15,7 +15,6 @@ impl MouseHandler {
 
 	pub fn handle_press(&mut self, event: MouseEvent) {
 		self.buffer.is_held = true;
-		alert(&format!("uni {:?}", self.buffer));
 		self.handle_move(event);
 	}
 

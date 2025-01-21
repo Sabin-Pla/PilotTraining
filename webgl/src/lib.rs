@@ -27,10 +27,10 @@ use game::*;
 
 pub use game::QuadraticBezier;
 
-const GAME_ASPECT_X: f32  = 2.0;
+const GAME_ASPECT_X: f32  = 4.0;
 const GAME_ASPECT_Y: f32  = 1.0;
-const DEFAULT_SUPER_SAMPLING_RATIO: f32 = 2.0; // render at twice the display res
-const DEFAULT_SCREEN_RATIO: f32 = 0.75; // portion of screen space to take up
+const DEFAULT_SUPER_SAMPLING_RATIO: f32 = 8.0; // render at twice the display res
+const DEFAULT_SCREEN_RATIO: f32 = 0.95; // portion of screen space to take up
 
 #[wasm_bindgen]
 extern "C" {
@@ -107,12 +107,14 @@ fn handle_resize(wp: Webpage) {
     let body: HtmlElement = canvas.parent_element().unwrap().dyn_into::<HtmlElement>().unwrap();
     let canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
 
+    
     let (pixels_x, pixels_y) = get_screen_res(&*window, screen_ratio, aspect_ratio);
     let (raster_x, raster_y) = get_raster_res(
         &window, 
         super_sampling_ratio, 
         screen_ratio,
         aspect_ratio);
+            alert(&format!("{:?} {:?}", &(pixels_x, pixels_y), & (raster_x, raster_y)));
 
     canvas.set_width(raster_x);
     canvas.set_height(raster_y);
@@ -228,7 +230,7 @@ fn start() -> Result<(), JsValue> {
     game.load_stage(&DemoStage {});
 
     start_game_loop(game_context, game);
-    window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
+   // window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
     resize_handler.forget();
     
     Ok(())

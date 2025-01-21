@@ -73,6 +73,9 @@ bool draw_bezier_node(vec2 p, vec2 p_other, vec4 node_color) {
 
 void main() {
 
+    float aspect_x = 4.0;
+    float aspect_y = 1.0;
+
     // given and a current point P (gl_Position), which we want to verify is on a bezier curve or not, and 
     // a triangle (p0, p1, p2) with LERP points l0 and l1 along its sides:
     //     p1 
@@ -117,6 +120,7 @@ void main() {
     float D = p0.y;
     float E = p1.y;
     float F = p2.y;
+
 
     float c0=2.0*pow(A, 2.0)-2.0*A*B-2.0*A*p.x+2.0*B*p.x+2.0*pow(D, 2.0)-2.0*D*E-2.0*D*p.y+2.0*E*p.y;
     float c1=-6.0 *pow(A, 2.0)+
@@ -185,19 +189,18 @@ void main() {
     float t; 
     float dist = 2.0 * width;
     float used_root;
-    if (is_expected_range(z1, 0.0, 0.001)) {
+    if (is_expected_range(z1, 0.0, 0.000001)) {
         outColor = vec4(1.0, 0.0, 0.0, 1.0);
         i=3;
         float t_temp=x1-a/3.0; 
+        t_temp=-pow(z1, 3.0) / (27.0 * rooted_val);
         vec2 l0 = lerp(t_temp, p0, p1);
         vec2 l1 = lerp(t_temp, p1, p2);
         vec2 l2 = lerp(t_temp, l0, l1);
         float dist_new = distance(l2, p);
-        if (dist_new < dist) {
-            dist = dist_new;
-            t = t_temp;
-            used_root = x1;
-        }
+        dist = dist_new;
+        t = t_temp;
+        used_root = x1;
     }
 
     vec2 l0;
@@ -206,6 +209,7 @@ void main() {
     vec2 l; // from P to center of curve
     
     float testval;
+    bool found_root = false;
     
     while (i < 3) {
         float root = cbrt[i].x - (z1 / (3.0 * cbrt[i].x));
@@ -225,41 +229,46 @@ void main() {
             dist = dist_new;
             t = t_temp;
             used_root = root;
+           // p.x *= 2.0;
+           // l2.x *= 2.0;
             l = (l2 - p);
 
+            // p.x /= scale_factor;
+            //l2.x /= scale_factor;
+            found_root = true;
         }
         i += 1;
     }
-
-    float w = width;
-    float scale_factor = 1.0;
-    if (l.x < 0.0 && l.y > 0.0 ||  l.y > 0.0 && l.x > 0.0  ) {
-        // is along the inside of curve
-        if (l.x < 0.0) { // in progress, try and correct for aspect ratio
-            scale_factor = 1.0 - dot(l, vec2(-1.0, 0.0)) / length(l);
-            outColor = vec4( scale_factor, 0.0, 0.0, 1.0);
-            w += width * 2.0 * scale_factor;
-            //return;
-        }
+    if (found_root == false)  {
+        discard;
     }
 
+    float w = width;
 
-    //dist = dist / dot((l2 - p), vec2(2.0, 1.0));
+    float ratio_scale = (aspect_x / aspect_y);
+    float scale_factor = 1.0;
+    float intensity = 1.0;
+   // intensity = 1.0;
+    scale_factor = 1.0 - acos(abs(l.x) / length(l));
+    outColor = vec4(0.4, 0.4, scale_factor, 1.0); 
+    l = l; // defined earlier, P to cloest point on curve
 
+    l.x /= pow(1.0/2.0, scale_factor);
+    dist = length(l);
+   
+    //dist += dist * aspect_correction_factor* (1.0 / 2.0);
     if (dist >= w ) { 
         discard;
-    } else {
-        float intensity = 0.7;
-  
-        outColor = vec4(intensity * 0.4, intensity * 0.45, intensity, 1.0); 
+    } else  {
+
   
         float edge_range = w * 0.2;
-
         
         float d1 = distance(p, p0);
         float d2 =  distance(p, p2);
         if (t < 0.0 && (d1 > w - edge_range)) {
-            dist = d1;
+            // fade ends of curves out instead of abruptly stopping at t=0 and t=1
+            dist = d1; 
         } else if (t > 1.0 && (d2 > w - edge_range)) {
             dist = d2;
         }

@@ -102,17 +102,17 @@ void main() {
 
     vec2 p = (gl_FragCoord.xy / res.xy - (0.5, 0.5)) * 2.0; 
 
-    if (draw_bezier_node(p, p0,  vec4(0.9, 0.9, 0.9, 1.0))) {
-        return; 
-    }
+  //  if (draw_bezier_node(p, p0,  vec4(0.9, 0.9, 0.9, 1.0))) {
+   //     return; 
+   // }
     
     if (draw_bezier_node(p, p1,  vec4(0.2, 0.9, 0.2, 1.0))) {
         return;
     }
 
-    if (draw_bezier_node(p, p2,  vec4(0.9, 0.2, 0.2, 1.0))) {
-        return;
-    }
+ //   if (draw_bezier_node(p, p2,  vec4(0.9, 0.2, 0.2, 1.0))) {
+  //      return;
+   // }
 
     float A = p0.x;
     float B = p1.x;
@@ -189,7 +189,7 @@ void main() {
     float t; 
     float dist = 2.0 * width;
     float used_root;
-    if (is_expected_range(z1, 0.0, 0.000001)) {
+    if (is_expected_range(z1, 0.0, 0.00001)) {
         outColor = vec4(1.0, 0.0, 0.0, 1.0);
         i=3;
         float t_temp=x1-a/3.0; 
@@ -229,12 +229,7 @@ void main() {
             dist = dist_new;
             t = t_temp;
             used_root = root;
-           // p.x *= 2.0;
-           // l2.x *= 2.0;
             l = (l2 - p);
-
-            // p.x /= scale_factor;
-            //l2.x /= scale_factor;
             found_root = true;
         }
         i += 1;
@@ -253,24 +248,34 @@ void main() {
     outColor = vec4(0.4, 0.4, scale_factor, 1.0); 
     l = l; // defined earlier, P to cloest point on curve
 
-    l.x /= pow(1.0/2.0, scale_factor);
+    l.x /= pow(1.0/4.0, scale_factor);
     dist = length(l);
+
+
    
     //dist += dist * aspect_correction_factor* (1.0 / 2.0);
     if (dist >= w ) { 
         discard;
     } else  {
 
-  
+        
         float edge_range = w * 0.2;
         
         float d1 = distance(p, p0);
         float d2 =  distance(p, p2);
-        if (t < 0.0 && (d1 > w - edge_range)) {
+        if (t < 0.0) {
             // fade ends of curves out instead of abruptly stopping at t=0 and t=1
-            dist = d1; 
-        } else if (t > 1.0 && (d2 > w - edge_range)) {
-            dist = d2;
+            vec2 circle_end = p0;
+            vec2 l2 = p -  p0;
+            l2.x *= pow(4.0, scale_factor);
+            dist = length(l2);
+        } else if (t > 1.0) { // && (d2 > w - edge_range)
+            
+            vec2 l2 = p -  p2;
+            l2.x *= pow(4.0, scale_factor);
+
+            dist = length(l2);
+            edge_range = w * 0.2;
         }
 
         float margin = w - dist;

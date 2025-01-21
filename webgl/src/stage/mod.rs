@@ -5,9 +5,9 @@ pub trait Stage {
 }
 
 const DEMO_STAGE_BEZIER_NODES: [f32; 6] = [
-	-1.0, -0.0,
+	-1.5, -0.9,
 	-0.0, 0.9,
-	1.0, -0.5];
+	3.0, -0.5];
 
 
 pub struct DemoStage {}

@@ -106,7 +106,7 @@ void main() {
    //     return; 
    // }
     
-    if (draw_bezier_node(p, vec2(-0.224/2.0,-0.105),  vec4(0.2, 0.9, 0.2, 1.0))) {
+    if (draw_bezier_node(p, p1,  vec4(0.2, 0.9, 0.2, 1.0))) {
         return;
     }
 
@@ -184,8 +184,8 @@ void main() {
     }
 
     x1=u1+u2;
-
     int i=0;
+    bool found_root = false;
     float t; 
     float dist = 2.0 * width;
     float used_root;
@@ -194,34 +194,32 @@ void main() {
     vec2 l1;
     vec2 l2;
     vec2 l; // from P to center of curve
-    if (is_expected_range(z1, 0.0, 0.0001)) {
-        outColor = vec4(1.0, 0.0, 0.0, 1.0);
-        //return;
-        i=3;
 
-        float t_temp=x1-a/3.0; 
-        x1 = -pow(z1, 3.0) / (27.0 * (-z2/2.0 + pow(rooted_val, 0.5)));
-        t_temp= x1- a/3.0;
+    
+    if (is_expected_range(z1, 0.0, 0.01)) {
+
+
+       // x1 = -pow(z1, 3.0) / (27.0 * (-z2/2.0 + pow(rooted_val, 0.5)));
+        float t_temp = x1 - a/3.0;
         vec2 l0 = lerp(t_temp, p0, p1);
         vec2 l1 = lerp(t_temp, p1, p2);
         vec2 l2 = lerp(t_temp, l0, l1);
-        float dist_new = distance(l2, p);
-        dist = dist_new;
+        dist = distance(l2, p);
         t = t_temp;
+        l = (l2 - p);
         used_root = x1;
-        skip=true;
+        skip = true;
+        found_root = true;
     }
 
     
-    float testval;
-    bool found_root = false;
+    
     
     while (i < 3 && !skip) {
         float root = cbrt[i].x - (z1 / (3.0 * cbrt[i].x));
         //  ^ fix this. should be complex subtraction
         vec2 recip = complex_recip(cbrt[i].xy);
         root = cbrt[i].x - (z1/3.0 * recip.x);
-        testval = pow(cbrt[i].x, 2.0) + pow(cbrt[i].y, 2.0);
 
         float expected_zero = pow(root, 3.0) + z1*root + z2 ;
         roots[i] = vec2(root, expected_zero);
@@ -248,11 +246,8 @@ void main() {
     float ratio_scale = (aspect_x / aspect_y);
     float scale_factor = 1.0;
     float intensity = 1.0;
-   // intensity = 1.0;
     scale_factor = 1.0 - acos(abs(l.x) / length(l));
-    outColor = vec4(0.4, 0.4, scale_factor, 1.0); 
-    l = l; // defined earlier, P to cloest point on curve
-
+    
     l.x /= pow(1.0/4.0, scale_factor);
     dist = length(l);
 
@@ -263,7 +258,7 @@ void main() {
         discard;
     } else  {
 
-        
+        outColor = vec4(0.4, 0.4, scale_factor, 1.0); 
         float edge_range = w * 0.2;
         
         float d1 = distance(p, p0);

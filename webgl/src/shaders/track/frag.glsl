@@ -106,7 +106,7 @@ void main() {
    //     return; 
    // }
     
-    if (draw_bezier_node(p, p1,  vec4(0.2, 0.9, 0.2, 1.0))) {
+    if (draw_bezier_node(p, vec2(-0.224/2.0,-0.105),  vec4(0.2, 0.9, 0.2, 1.0))) {
         return;
     }
 
@@ -189,11 +189,19 @@ void main() {
     float t; 
     float dist = 2.0 * width;
     float used_root;
-    if (is_expected_range(z1, 0.0, 0.00001)) {
+    bool skip=false;
+    vec2 l0;
+    vec2 l1;
+    vec2 l2;
+    vec2 l; // from P to center of curve
+    if (is_expected_range(z1, 0.0, 0.0001)) {
         outColor = vec4(1.0, 0.0, 0.0, 1.0);
+        //return;
         i=3;
+
         float t_temp=x1-a/3.0; 
-        t_temp=-pow(z1, 3.0) / (27.0 * rooted_val);
+        x1 = -pow(z1, 3.0) / (27.0 * (-z2/2.0 + pow(rooted_val, 0.5)));
+        t_temp= x1- a/3.0;
         vec2 l0 = lerp(t_temp, p0, p1);
         vec2 l1 = lerp(t_temp, p1, p2);
         vec2 l2 = lerp(t_temp, l0, l1);
@@ -201,17 +209,14 @@ void main() {
         dist = dist_new;
         t = t_temp;
         used_root = x1;
+        skip=true;
     }
 
-    vec2 l0;
-    vec2 l1;
-    vec2 l2;
-    vec2 l; // from P to center of curve
     
     float testval;
     bool found_root = false;
     
-    while (i < 3) {
+    while (i < 3 && !skip) {
         float root = cbrt[i].x - (z1 / (3.0 * cbrt[i].x));
         //  ^ fix this. should be complex subtraction
         vec2 recip = complex_recip(cbrt[i].xy);
@@ -268,13 +273,13 @@ void main() {
             vec2 circle_end = p0;
             vec2 l2 = p -  p0;
             l2.x *= pow(4.0, scale_factor);
-            dist = length(l2);
+            dist = max(dist, length(l2));
         } else if (t > 1.0) { // && (d2 > w - edge_range)
             
             vec2 l2 = p -  p2;
             l2.x *= pow(4.0, scale_factor);
 
-            dist = length(l2);
+            dist = max(dist, length(l2));
             edge_range = w * 0.2;
         }
 

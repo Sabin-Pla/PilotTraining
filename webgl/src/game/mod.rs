@@ -98,6 +98,9 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
     let (mouse_x, mouse_y) = game_context.input_handler.mouse_clipspace_coords(canvas_x, canvas_y);
 	let wgl_context = game_context.wp.context.clone();
 	let wgl_context = wgl_context.borrow();
+    let camera = game_context.camera.clone();
+    let camera = camera.borrow();
+
     
     wgl_context.clear_color(0.0, 0.0, 0.0, 1.0);
     wgl_context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
@@ -112,7 +115,7 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
         &wgl_context, &game_context.track_shader);
 
     renderer::load_buffer(
-        &game_context.camera.to_buffer((aspect_x, aspect_y), (FIELD_OFFSET_X, 0.0)), 
+        &camera.to_buffer((aspect_x, aspect_y), (FIELD_OFFSET_X, 0.0)), 
         renderer::BufferArg::Uniform(BufferDataType::Float, "u_camera".to_string(), renderer::UNIFORM_CAMERA_IDX), 
         &wgl_context, &game_context.track_shader);
     let track_spline_vertex_buffer = game.track_spline_vertex_buffer(aspect_x, aspect_y);

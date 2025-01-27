@@ -27,8 +27,8 @@ use game::*;
 
 pub use game::QuadraticBezier;
 
-const GAME_ASPECT_X: f32  = 4.0;
-const GAME_ASPECT_Y: f32  = 1.0;
+const GAME_ASPECT_X: f32  = 16.0;
+const GAME_ASPECT_Y: f32  = 9.0;
 const DEFAULT_SUPER_SAMPLING_RATIO: f32 = 2.0; // render at twice the display res
 const DEFAULT_SCREEN_RATIO: f32 = 0.95; // portion of screen space to take up
 
@@ -198,7 +198,11 @@ fn start() -> Result<(), JsValue> {
         window: window_cell.clone()
     };
 
-    let input_handler = InputHandler::new(wp.clone())?;
+    let mut camera = Camera::default();
+    camera.aspect_ratio = (GAME_ASPECT_X, GAME_ASPECT_Y);
+    let camera_cell = Rc::new(RefCell::new(camera));
+
+    let input_handler = InputHandler::new(wp.clone(), camera_cell.clone())?;
     let resize_wp = wp.clone();
     let resize_handler = Closure::<dyn FnMut()>::new(move || { 
             handle_resize(resize_wp.clone());
@@ -212,8 +216,7 @@ fn start() -> Result<(), JsValue> {
     let interface_shader = renderer::link_program(&context, 
         &base_shaders[0].0, &base_shaders[0].1);
 
-    let mut camera = Camera::default();
-    camera.aspect_ratio = (GAME_ASPECT_X, GAME_ASPECT_Y);
+    
     let game_context = GameContext {
         wp: wp.clone(),
         track_shader: track_shader?,
@@ -222,7 +225,7 @@ fn start() -> Result<(), JsValue> {
         aspect_ratio,
         screen_ratio,
         super_sampling_ratio,
-        camera
+        camera: camera_cell
     };
 
 

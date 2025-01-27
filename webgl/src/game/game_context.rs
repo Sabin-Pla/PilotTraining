@@ -8,7 +8,7 @@ pub struct GameContext {
 	pub aspect_ratio: (f32, f32),
 	pub screen_ratio: f32,
 	pub super_sampling_ratio: f32,
-	pub camera: Camera
+	pub camera: Rc<RefCell<Camera>>
 }
 // https://docs.rs/ttf-parser/latest/ttf_parser/struct.Face.html#method.glyph_bounding_box
 // pub fn glyph_raster_image(

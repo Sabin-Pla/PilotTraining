@@ -15,9 +15,9 @@ pub struct InputHandler {
 }
 
 impl InputHandler {
-	pub fn new(wp: Webpage) -> Result<Self, JsValue> {
+	pub fn new(wp: Webpage, camera: Rc<RefCell<Camera>>) -> Result<Self, JsValue> {
 		Ok(InputHandler {
-			key_handler: KeyHandler::new(wp.clone())?,
+			key_handler: KeyHandler::new(wp.clone(), camera.clone())?,
 			mouse_handler: MouseHandler::new(wp.clone())?,
 			wp: wp
 		})

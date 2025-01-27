@@ -1,21 +1,35 @@
 use crate::*;
 
 pub struct KeyHandler {
-	wp: Webpage
+	wp: Webpage,
+	camera: Rc<RefCell<Camera>>
 }
 
 impl KeyHandler {
 	pub fn handle(&self, event: KeyboardEvent) {
+		let mut camera = self.camera.clone();
+		let mut camera = camera.borrow_mut();
 
 		match event.code().as_str() {
-			"KeyP" => { panic!("P is for panic!") },
-			_ => { alert("must press w") }
+			"KeyW" => {
+				camera.center.y += 0.1;
+			},
+			"KeyA" => {
+				camera.center.x -= 0.1;
+			},
+			"KeyS" => {
+				camera.center.y -= 0.1;
+			},
+			"KeyD" => {
+				camera.center.x += 0.1;
+			},
+			_ => {}
 		}
 	}
 
-	pub fn new(wp: Webpage) -> Result<Rc<RefCell<Self>>, JsValue> {
+	pub fn new(wp: Webpage, camera: Rc<RefCell<Camera>>) -> Result<Rc<RefCell<Self>>, JsValue> {
 
-		let key_handler_cell = Rc::new(RefCell::new(Self { wp: wp.clone() }));
+		let key_handler_cell = Rc::new(RefCell::new(Self { wp: wp.clone(), camera: camera.clone() }));
 		let key_handler = key_handler_cell.clone();
 		let key_handler = key_handler.borrow_mut();
 		let key_handler_cell_handler = key_handler_cell.clone();

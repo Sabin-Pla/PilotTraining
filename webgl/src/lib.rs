@@ -29,7 +29,7 @@ pub use game::QuadraticBezier;
 
 const GAME_ASPECT_X: f32  = 4.0;
 const GAME_ASPECT_Y: f32  = 1.0;
-const DEFAULT_SUPER_SAMPLING_RATIO: f32 = 8.0; // render at twice the display res
+const DEFAULT_SUPER_SAMPLING_RATIO: f32 = 2.0; // render at twice the display res
 const DEFAULT_SCREEN_RATIO: f32 = 0.95; // portion of screen space to take up
 
 #[wasm_bindgen]
@@ -109,23 +109,22 @@ fn handle_resize(wp: Webpage) {
 
     
     let (pixels_x, pixels_y) = get_screen_res(&*window, screen_ratio, aspect_ratio);
+
     let (raster_x, raster_y) = get_raster_res(
         &window, 
         super_sampling_ratio, 
         screen_ratio,
         aspect_ratio);
-            alert(&format!("{:?} {:?}", &(pixels_x, pixels_y), & (raster_x, raster_y)));
+    
+    // alert(&format!("{:?} {:?}", &(canvas.width(), pixels_x), & (raster_x, raster_y)));
+
+    // canvas.set_width(raster_x);
+    // canvas.set_height(raster_y);
 
     canvas.set_width(raster_x);
     canvas.set_height(raster_y);
-   if raster_x > raster_y  {
-        canvas.style().set_property("height", &pixels_y.to_string()).unwrap();
-    } else {
-        canvas.style().set_property("width", &pixels_x.to_string()).unwrap();
-    }
-
-   // MAKE RESIZABLE
-   context.scissor(0, 0, pixels_x.try_into().unwrap(), pixels_y.try_into().unwrap());
+    // MAKE RESIZABLE
+    // context.scissor(0, 0, pixels_x.try_into().unwrap(), pixels_y.try_into().unwrap());
 
     context.viewport(0, 0, raster_x.try_into().unwrap(), raster_y.try_into().unwrap());
 }
@@ -230,7 +229,7 @@ fn start() -> Result<(), JsValue> {
     game.load_stage(&DemoStage {});
 
     start_game_loop(game_context, game);
-   // window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
+    window.set_onresize(Some(resize_handler.as_ref().unchecked_ref()));
     resize_handler.forget();
     
     Ok(())

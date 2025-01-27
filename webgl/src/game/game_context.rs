@@ -10,6 +10,12 @@ pub struct GameContext {
 	pub super_sampling_ratio: f32,
 	pub camera: Camera
 }
+// https://docs.rs/ttf-parser/latest/ttf_parser/struct.Face.html#method.glyph_bounding_box
+// pub fn glyph_raster_image(
+//    &self,
+//    glyph_id: GlyphId,
+//    pixels_per_em: u16,
+//) -> Option<RasterGlyphImage<'_>>
 
 impl GameContext {
 	pub fn display_resolution(&self) -> (f32, f32) {
@@ -25,8 +31,35 @@ impl GameContext {
 	pub fn mouse_internal_resolution(&self) -> (f32, f32) {
 		let window = self.wp.window.clone();
 	    let window = window.borrow();
+	    let document = self.wp.document.clone();
+	    let document = document.borrow();
+	    let canvas = document.get_element_by_id("canvas").unwrap();
+	        let canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
+
+
 		let (pixels_x, pixels_y) = get_screen_res(&*window, self.screen_ratio, self.aspect_ratio);
-		(pixels_x as f32, pixels_y as f32)
+		let (mut pixels_x, pixels_y) = (
+			canvas.style().get_property_value("width").unwrap(), 
+			canvas.style().get_property_value("height").unwrap());
+		
+		let (pixels_x, pixels_y) = match pixels_x.ends_with("px") {
+			true => { 
+
+				let pixels_x = pixels_x.split_at(pixels_x.len()-2).0.to_string();
+				let pixels_x = pixels_x.parse::<f32>().expect(&pixels_x);
+				(pixels_x, pixels_x * self.aspect_ratio.1 / self.aspect_ratio.0)
+			},
+			false => { 
+				if !pixels_y.ends_with("px") {
+					panic!("no width or height property provided");
+				}
+				let pixels_y = pixels_y.split_at(pixels_y.len()-2).0.to_string();
+				let pixels_y = pixels_y.parse::<f32>().expect(&pixels_x);
+				(pixels_y * self.aspect_ratio.0 / self.aspect_ratio.1, pixels_y)
+			}
+		};
+
+		(pixels_x, pixels_y)
 	}
 
 }

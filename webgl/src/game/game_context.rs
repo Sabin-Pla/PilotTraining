@@ -10,12 +10,6 @@ pub struct GameContext {
 	pub super_sampling_ratio: f32,
 	pub camera: Rc<RefCell<Camera>>
 }
-// https://docs.rs/ttf-parser/latest/ttf_parser/struct.Face.html#method.glyph_bounding_box
-// pub fn glyph_raster_image(
-//    &self,
-//    glyph_id: GlyphId,
-//    pixels_per_em: u16,
-//) -> Option<RasterGlyphImage<'_>>
 
 impl GameContext {
 	pub fn display_resolution(&self) -> (f32, f32) {

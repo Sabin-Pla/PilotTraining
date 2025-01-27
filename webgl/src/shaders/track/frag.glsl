@@ -244,7 +244,6 @@ void main() {
 
     float w = width;
 
-    float ratio_scale = (aspect_x / aspect_y);
     float scale_factor = 1.0;
     float intensity = 1.0;
     scale_factor = 1.0 - acos(abs(l.x) / length(l));

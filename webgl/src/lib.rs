@@ -164,6 +164,7 @@ fn start() -> Result<(), JsValue> {
         aspect_ratio);
 
     body.style().set_property("margin", "0px")?;
+    body.style().set_property("background-color", "#1a1a1a")?;
     canvas.style().set_property("position", "relative")?;
     canvas.style().set_property("margin", "auto")?;
 

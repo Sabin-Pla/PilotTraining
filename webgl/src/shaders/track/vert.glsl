@@ -7,10 +7,13 @@ out vec2 p1;
 out vec2 p2;
 out float width;
 out vec4 res;
+out vec2 aspect_ratio;
 
 layout (std140) uniform u_camera {
     vec2 camera;
     vec2 zoom;
+    vec2 aspect;
+    vec2 padding;
 };
 
 layout (std140) uniform u_bezier_nodes {
@@ -32,10 +35,18 @@ void main() {
 	int vert_idx = gl_VertexID / 3;
 	width = 0.05;
 
-	p0 = nodes[vert_idx][0].xy;
-	p1 = nodes[vert_idx][1].xy;
-	p2 = nodes[vert_idx][2].xy;
-	vec2 p = position.xy;
+	aspect_ratio = aspect;
+	vec2 aspect_mult;
+	if (aspect.x > aspect.y) {
+		aspect_mult = vec2(aspect.x / aspect.y, 1.0);
+	} else {
+		aspect_mult = vec2(1.0, aspect.y / aspect.x);
+	}
+
+	p0 = nodes[vert_idx][0].xy / aspect_mult;
+	p1 = nodes[vert_idx][1].xy / aspect_mult;
+	p2 = nodes[vert_idx][2].xy / aspect_mult;
+	vec2 p = position.xy  / aspect_mult;
 
 	if (vert_equality(p, p0)) { // start node
 		// Make room so that the whole width of the curve is actually inside the

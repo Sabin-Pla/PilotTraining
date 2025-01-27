@@ -24,13 +24,6 @@ impl FieldPosition {
 		let mut x = self.x;
 		let mut y = self.y;
 
-		//alert(&format!("uni {:?}", aspect_ratio));
-		if aspect_ratio.0 > aspect_ratio.1 {
-			x /= aspect_ratio.0 / aspect_ratio.1;
-		} else {
-			y /= aspect_ratio.1 / aspect_ratio.0;
-		}
-
 		(x + field_clip_offset.0, y + field_clip_offset.1)
 	}
 }

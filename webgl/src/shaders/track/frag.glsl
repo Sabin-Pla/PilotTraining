@@ -7,6 +7,7 @@ in vec2 p0;
 in vec2 p1;
 in vec2 p2;
 in vec4 res;
+in vec2 aspect_ratio;
 out vec4 outColor;
 
 // (entity_space.xy + world_space.xy) * zoom.xy  - camera.xy;
@@ -248,7 +249,11 @@ void main() {
     float intensity = 1.0;
     scale_factor = 1.0 - acos(abs(l.x) / length(l));
     
-    l.x /= pow(1.0/4.0, scale_factor);
+    if (aspect_ratio.x > aspect_ratio.y) {
+        l.x /= pow(aspect_ratio.y/aspect_ratio.x, scale_factor);
+    } else {
+        l.y /= pow(aspect_ratio.x/aspect_ratio.y, scale_factor);
+    }
     dist = length(l);
 
 
@@ -267,12 +272,20 @@ void main() {
             // fade ends of curves out instead of abruptly stopping at t=0 and t=1
             vec2 circle_end = p0;
             vec2 l2 = p -  p0;
-            l2.x *= pow(4.0, scale_factor);
+            if (aspect_ratio.x > aspect_ratio.y) {
+                l2.x *= pow(aspect_ratio.x/aspect_ratio.y, scale_factor);
+            } else {
+                l2.y *= pow(aspect_ratio.y/aspect_ratio.x, scale_factor);
+            }
+           
             dist = max(dist, length(l2));
         } else if (t > 1.0) { // && (d2 > w - edge_range)
-            
             vec2 l2 = p -  p2;
-            l2.x *= pow(4.0, scale_factor);
+            if (aspect_ratio.x > aspect_ratio.y) {
+                l2.x *= pow(aspect_ratio.x/aspect_ratio.y, scale_factor);
+            } else {
+                l2.y *= pow(aspect_ratio.y/aspect_ratio.x, scale_factor);
+            }
 
             dist = max(dist, length(l2));
             edge_range = w * 0.2;

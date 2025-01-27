@@ -212,7 +212,8 @@ fn start() -> Result<(), JsValue> {
     let interface_shader = renderer::link_program(&context, 
         &base_shaders[0].0, &base_shaders[0].1);
 
-
+    let mut camera = Camera::default();
+    camera.aspect_ratio = (GAME_ASPECT_X, GAME_ASPECT_Y);
     let game_context = GameContext {
         wp: wp.clone(),
         track_shader: track_shader?,
@@ -221,7 +222,7 @@ fn start() -> Result<(), JsValue> {
         aspect_ratio,
         screen_ratio,
         super_sampling_ratio,
-        camera: Camera::default()
+        camera
     };
 
 

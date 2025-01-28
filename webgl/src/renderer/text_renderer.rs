@@ -6,8 +6,7 @@ use fontdue::layout::*;
 pub fn draw_text(context: &mut GameContext) {
 	let wgl_context = context.wp.context.clone();
 	let wgl_context = wgl_context.borrow();
-	let program = &context.text_shader;
-	wgl_context.use_program(Some(program));
+	wgl_context.use_program(Some(&context.text_shader));
 
 	let font = include_bytes!("../resources/fonts/dimica/Dimica-Light.otf") as &[u8];
 	let dimica_light = Font::from_bytes(font, fontdue::FontSettings::default()).unwrap();
@@ -33,10 +32,10 @@ pub fn draw_text(context: &mut GameContext) {
 
 	// take up bottom left of screen
 	let bounding_box: [f32; 8] = [
-		-1.0, 1.0,
+		-1.0_f32, -1.0,
 		-1.0, 0.0,
 		0.0, 0.0,
-        0.0, 1.0];
+        0.0, -1.0,];
 
     let buffer_arg = BufferArg::Texture {
     	datatype: BufferDataType::UnsignedByte,
@@ -44,7 +43,7 @@ pub fn draw_text(context: &mut GameContext) {
 		height: metrics.height as u32,
 		data: bitmap
     };
-	load_buffer(&bounding_box, buffer_arg, &wgl_context, program);
-	wgl_context.draw_arrays(WebGl2RenderingContext::TRIANGLE_STRIP, 0, (bounding_box.len() / 2) as i32);
+	load_buffer(&bounding_box, buffer_arg, &wgl_context, &context.text_shader);
+	wgl_context.draw_arrays(WebGl2RenderingContext::TRIANGLE_FAN, 0, (bounding_box.len() / 2) as i32);
 }
 

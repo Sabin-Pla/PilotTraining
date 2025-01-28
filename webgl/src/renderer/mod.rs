@@ -91,7 +91,7 @@ pub fn initialize_base_shaders(context: &WebGl2RenderingContext) -> [(WebGlShade
      (text_vertex, text_fragment)]
 }
 
-pub fn load_buffer<T: std::clone::Clone>(
+pub fn load_buffer<T: std::clone::Clone + std::fmt::Debug>(
 		buf: &[T], arg: BufferArg,
 		context: &WebGl2RenderingContext,
 		program: &WebGlProgram) {
@@ -140,29 +140,34 @@ pub fn load_buffer<T: std::clone::Clone>(
 		},
 
 		BufferArg::Texture{ datatype, width, height, ref data } => {
-			//alert(format!("{:?}", &data).as_str());
-			create_vertex_buffer();
-			set_attribute(BufferDataType::Float, "position", 2);
+			// alert(format!("{:?}", &buf).as_str());
 			unsafe {
-				let buf = buf.to_vec();
-				let buf = buf.as_slice();
 				let buffer_js = js_array!(BufferDataType::Float, buf);
 	        	context.buffer_data_with_array_buffer_view(
 	        		WebGl2RenderingContext::ARRAY_BUFFER, &buffer_js, WebGl2RenderingContext::STATIC_DRAW);
         	}
+        	create_vertex_buffer();
+			set_attribute(BufferDataType::Float, "a_position", 2);
 
 			let texture_unit_number = 0;
-			let texcord_buffer = context.create_buffer().expect("Failed to create buffer");
-		    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&texcord_buffer));
-		    create_vertex_buffer();
-			set_attribute(BufferDataType::Float, "a_texCoord", 2);
+			let tex_buffer = context.create_buffer().expect("Failed to create buf fer");
+
+		    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&tex_buffer));
 			unsafe {
-				let new_data: &[f32] = &[0.0, 0.0, 0.5, 1.0, 1.0, 0.0, 1.0, 1.0];
+				let new_data: &[f32] = &[
+					0.0_f32, 0.0, 
+					0.0, 1.0, 
+					1.0, 0.0, 
+					1.0, 1.0];
 				let new_data: &[T] = std::mem::transmute::<&[f32], &[T]>(new_data);
+
 				let buffer_js = js_array!(BufferDataType::Float, new_data);
+				//alert(format!("{:?}", &buffer_js.to_string()).as_str());
 	        	context.buffer_data_with_array_buffer_view(
 	        		WebGl2RenderingContext::ARRAY_BUFFER, &buffer_js, WebGl2RenderingContext::STATIC_DRAW);
         	}
+        	//create_vertex_buffer();
+			set_attribute(BufferDataType::Float, "a_texCoord", 2);
 
         	let texture = context.create_texture().expect("failed to create webgl texture");
 			let texture_uniform_location = context.get_uniform_location(program, "u_image")
@@ -200,6 +205,8 @@ pub fn load_buffer<T: std::clone::Clone>(
 }
 
 fn set_tex_param(context: &WebGl2RenderingContext) {
+	// sets the defualt text params to disable wrap/mipmap levels
+	
 	context.tex_parameteri(
 		WebGl2RenderingContext::TEXTURE_2D, 
 		WebGl2RenderingContext::TEXTURE_WRAP_S, 

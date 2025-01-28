@@ -1,7 +1,7 @@
 #version 300 es
 precision highp float;
 
-in vec4 position;
+in vec2 position;
 out vec2 p0;
 out vec2 p1;
 out vec2 p2;

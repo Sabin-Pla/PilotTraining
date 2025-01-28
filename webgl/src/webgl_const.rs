@@ -3,7 +3,7 @@ use crate::*;
 pub use BufferDataType::*;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/vertexAttribPointer#type
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum BufferDataType {
 	Byte,
 	Short,
@@ -15,7 +15,7 @@ pub enum BufferDataType {
 	UnsignedInt,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum BufferTarget {
 	ArrayBuffer,
 	ElementArrayBuffer,

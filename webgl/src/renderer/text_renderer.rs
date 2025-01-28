@@ -39,7 +39,7 @@ pub fn draw_text(context: &mut GameContext) {
         0.0, 1.0];
 
     let buffer_arg = BufferArg::Texture {
-    	datatype: BufferDataType::UnsignedShort,
+    	datatype: BufferDataType::UnsignedByte,
     	width: metrics.width as u32,
 		height: metrics.height as u32,
 		data: bitmap

@@ -91,7 +91,7 @@ pub fn initialize_base_shaders(context: &WebGl2RenderingContext) -> [(WebGlShade
      (text_vertex, text_fragment)]
 }
 
-pub fn load_buffer<T>(
+pub fn load_buffer<T: std::clone::Clone>(
 		buf: &[T], arg: BufferArg,
 		context: &WebGl2RenderingContext,
 		program: &WebGlProgram) {
@@ -112,80 +112,81 @@ pub fn load_buffer<T>(
 	    context.enable_vertex_attrib_array(attribute_location);
     };
 
+    let bind_uniform = |datatype: BufferDataType, name: &str, idx: u32| { 
+    	let uniform_index = context.get_uniform_block_index(&program, &name);
+		context.uniform_block_binding(
+	        &program, uniform_index, idx);
+		context.bind_buffer_base(
+	        WebGl2RenderingContext::UNIFORM_BUFFER, idx, Some(&gl_buffer));
+    };
+
+    let create_vertex_buffer = || {
+    	let vao = context
+		        .create_vertex_array()
+		        .expect("Could not create vertex array object");
+		context.bind_vertex_array(Some(&vao));
+    };
+
 	match arg {
 		BufferArg::Attribute(datatype, dim_len, ref name) => set_attribute(datatype, name, dim_len),
 
 		BufferArg::Uniform(datatype, ref name, idx) => {
-			let uniform_index = context.get_uniform_block_index(&program, &name);
-			context.uniform_block_binding(
-		        &program, uniform_index, idx as u32);
-			context.bind_buffer_base(
-		        WebGl2RenderingContext::UNIFORM_BUFFER, idx as u32, Some(&gl_buffer));
+			bind_uniform(datatype, name, idx  as u32)
 		},
 
 		BufferArg::Vertexes(dim_len) => {
-			let vao = context
-		        .create_vertex_array()
-		        .expect("Could not create vertex array object");
-		    context.bind_vertex_array(Some(&vao));
+			create_vertex_buffer();
 			set_attribute(arg.datatype(), "position", dim_len);
 		},
 
 		BufferArg::Texture{ datatype, width, height, ref data } => {
-			set_attribute(datatype, "a_texCoord", buf.len());
+			//alert(format!("{:?}", &data).as_str());
+			create_vertex_buffer();
+			set_attribute(BufferDataType::Float, "position", 2);
+			unsafe {
+				let buf = buf.to_vec();
+				let buf = buf.as_slice();
+				let buffer_js = js_array!(BufferDataType::Float, buf);
+	        	context.buffer_data_with_array_buffer_view(
+	        		WebGl2RenderingContext::ARRAY_BUFFER, &buffer_js, WebGl2RenderingContext::STATIC_DRAW);
+        	}
 
-			let empty_buffer: [f32; 0] = [];
+			let texture_unit_number = 0;
+			let texcord_buffer = context.create_buffer().expect("Failed to create buffer");
+		    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&texcord_buffer));
+		    create_vertex_buffer();
+			set_attribute(BufferDataType::Float, "a_texCoord", 2);
+			unsafe {
+				let new_data: &[f32] = &[0.0, 0.0, 0.5, 1.0, 1.0, 0.0, 1.0, 1.0];
+				let new_data: &[T] = std::mem::transmute::<&[f32], &[T]>(new_data);
+				let buffer_js = js_array!(BufferDataType::Float, new_data);
+	        	context.buffer_data_with_array_buffer_view(
+	        		WebGl2RenderingContext::ARRAY_BUFFER, &buffer_js, WebGl2RenderingContext::STATIC_DRAW);
+        	}
 
+        	let texture = context.create_texture().expect("failed to create webgl texture");
 			let texture_uniform_location = context.get_uniform_location(program, "u_image")
 				.expect("could not find u_image uniform");
-
-			load_buffer(
-				&empty_buffer, 
-				BufferArg::Uniform(
-					BufferDataType::Float, 
-					"u_image".to_string(), 
-					renderer::UNIFORM_IMAGE_IDX), 
-				context, 
-				program);
-			let texture = context.create_texture().expect("failed to create webgl texture");
- 			
-			context.tex_parameteri(
-				WebGl2RenderingContext::TEXTURE_2D, 
-				WebGl2RenderingContext::TEXTURE_WRAP_S, 
-				WebGl2RenderingContext::CLAMP_TO_EDGE as i32);
-			context.tex_parameteri(
-				WebGl2RenderingContext::TEXTURE_2D, 
-				WebGl2RenderingContext::TEXTURE_WRAP_T, 
-				WebGl2RenderingContext::CLAMP_TO_EDGE as i32);
-			context.tex_parameteri(
-				WebGl2RenderingContext::TEXTURE_2D, 
-				WebGl2RenderingContext::TEXTURE_MIN_FILTER,
-				WebGl2RenderingContext::NEAREST as i32 );
-			context.tex_parameteri(
-				WebGl2RenderingContext::TEXTURE_2D, 
-				WebGl2RenderingContext::TEXTURE_MAG_FILTER,
-				WebGl2RenderingContext::NEAREST as i32);
-			// make unit 0 the active texture unit
-			// (i.e, the unit all other texture commands will affect.)
-			let texture_unit_number = 0;
-			context.uniform1ui(Some(&texture_uniform_location), texture_unit_number);
 			context.active_texture(WebGl2RenderingContext::TEXTURE0 + texture_unit_number);
-
 			// Bind texture to 'texture unit '0' 2D bind point
 			context.bind_texture(WebGl2RenderingContext::TEXTURE_2D, Some(&texture));
-
+			
+			set_tex_param(context);		
 			context.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_u8_array_and_src_offset(
 				WebGl2RenderingContext::TEXTURE_2D.try_into().unwrap(),
 				0,
-				WebGl2RenderingContext::LUMINANCE.try_into().unwrap(),
+				WebGl2RenderingContext::R8UI.try_into().unwrap(),
 				width.try_into().unwrap(),
 				height.try_into().unwrap(),
 				0,
-				WebGl2RenderingContext::LUMINANCE.try_into().unwrap(),
+				WebGl2RenderingContext::RED_INTEGER.try_into().unwrap(),
 				WebGl2RenderingContext::UNSIGNED_BYTE.try_into().unwrap(),
 				&data,
 				0,
 			);
+
+			context.uniform1i(Some(&texture_uniform_location), texture_unit_number as i32);
+			return;
 		},
 
 		BufferArg::ElementArray => {}, // nothing to do
@@ -196,7 +197,26 @@ pub fn load_buffer<T>(
         context.buffer_data_with_array_buffer_view(
         	buffer_target.websys_code(), &buffer_js, WebGl2RenderingContext::STATIC_DRAW);
     }
- }
+}
+
+fn set_tex_param(context: &WebGl2RenderingContext) {
+	context.tex_parameteri(
+		WebGl2RenderingContext::TEXTURE_2D, 
+		WebGl2RenderingContext::TEXTURE_WRAP_S, 
+		WebGl2RenderingContext::CLAMP_TO_EDGE as i32);
+	context.tex_parameteri(
+		WebGl2RenderingContext::TEXTURE_2D, 
+		WebGl2RenderingContext::TEXTURE_WRAP_T, 
+		WebGl2RenderingContext::CLAMP_TO_EDGE as i32);
+	context.tex_parameteri(
+		WebGl2RenderingContext::TEXTURE_2D, 
+		WebGl2RenderingContext::TEXTURE_MIN_FILTER,
+		WebGl2RenderingContext::NEAREST as i32 );
+	context.tex_parameteri(
+		WebGl2RenderingContext::TEXTURE_2D, 
+		WebGl2RenderingContext::TEXTURE_MAG_FILTER,
+		WebGl2RenderingContext::NEAREST as i32);	
+}
 
 pub fn compile_shader(
     context: &WebGl2RenderingContext,

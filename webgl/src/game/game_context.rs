@@ -4,6 +4,7 @@ pub struct GameContext {
 	pub wp: Webpage,
 	pub track_shader: WebGlProgram,
 	pub interface_shader: WebGlProgram,
+	pub text_shader: WebGlProgram,
 	pub input_handler: InputHandler,
 	pub aspect_ratio: (f32, f32),
 	pub screen_ratio: f32,
@@ -23,15 +24,10 @@ impl GameContext {
 	}
 
 	pub fn mouse_internal_resolution(&self) -> (f32, f32) {
-		let window = self.wp.window.clone();
-	    let window = window.borrow();
 	    let document = self.wp.document.clone();
 	    let document = document.borrow();
 	    let canvas = document.get_element_by_id("canvas").unwrap();
 	        let canvas:HtmlCanvasElement = canvas.dyn_into::<web_sys::HtmlCanvasElement>().unwrap();
-
-
-		let (pixels_x, pixels_y) = get_screen_res(&*window, self.screen_ratio, self.aspect_ratio);
 		let (mut pixels_x, pixels_y) = (
 			canvas.style().get_property_value("width").unwrap(), 
 			canvas.style().get_property_value("height").unwrap());

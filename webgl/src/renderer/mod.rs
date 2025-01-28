@@ -1,8 +1,13 @@
+mod text_renderer;
+
 use crate::*;
 
 pub const UNIFORM_CAMERA_IDX: usize = 1;
 pub const UNIFORM_NODES_IDX: usize = 2;
 pub const UNIFORM_RESOLUTION_IDX: usize = 3;
+pub const UNIFORM_IMAGE_IDX: usize = 4;
+
+pub use text_renderer::*;
 
 macro_rules! js_array {
 	( $attribute_type:tt, $buf_type:ty, $buf: ident ) => {
@@ -34,13 +39,18 @@ pub enum BufferArg {
 	Attribute     (BufferDataType, usize, String),
 	Uniform       (BufferDataType, String, usize),
 	ElementArray,
-	Vertexes      (usize)
+	Vertexes      (usize),
+	Texture       {  
+		datatype: BufferDataType,
+		width: u32, 
+		height: u32,
+		data: Vec<u8> } 
 }
 
 impl BufferArg {
 	fn target(&self) -> BufferTarget {
 		match self {
-			Self::Attribute(..)|Self::Vertexes(..) => BufferTarget::ArrayBuffer,
+			Self::Attribute(..)|Self::Vertexes(..)|Self::Texture{ .. } => BufferTarget::ArrayBuffer,
 			Self::Uniform(..) => BufferTarget::UniformBuffer,
 			Self::ElementArray => BufferTarget::ElementArrayBuffer
 		}
@@ -51,25 +61,34 @@ impl BufferArg {
 			Self::Attribute(datatype, ..) => *datatype,
 			Self::Uniform(datatype,   ..) => *datatype,
 			Self::ElementArray => UnsignedInt,
-			Self::Vertexes(..) => Float
+			Self::Vertexes(..) => Float,
+			Self::Texture{ datatype, .. } => *datatype
 		}
 	}
 }
 
-pub fn initialize_base_shaders(context: &WebGl2RenderingContext) -> [(WebGlShader, WebGlShader); 2] {
+pub fn initialize_base_shaders(context: &WebGl2RenderingContext) -> [(WebGlShader, WebGlShader); 3] {
 	let interface_vertex = compile_shader(
         &context, WebGl2RenderingContext::VERTEX_SHADER,
-        &std::include_str!("shaders/interface/vert.glsl")).unwrap();
+        &std::include_str!("../shaders/interface/vert.glsl")).unwrap();
     let interface_fragment = compile_shader(
         &context, WebGl2RenderingContext::FRAGMENT_SHADER,
-        &std::include_str!("shaders/interface/frag.glsl")).unwrap();
+        &std::include_str!("../shaders/interface/frag.glsl")).unwrap();
     let track_vertex = compile_shader(
         &context, WebGl2RenderingContext::VERTEX_SHADER,
-        &std::include_str!("shaders/track/vert.glsl")).unwrap();
+        &std::include_str!("../shaders/track/vert.glsl")).unwrap();
     let track_fragment = compile_shader(
         &context, WebGl2RenderingContext::FRAGMENT_SHADER,
-        &std::include_str!("shaders/track/frag.glsl")).unwrap();
-    [(interface_vertex, interface_fragment), (track_vertex, track_fragment)]
+        &std::include_str!("../shaders/track/frag.glsl")).unwrap();
+    let text_vertex = compile_shader(
+        &context, WebGl2RenderingContext::VERTEX_SHADER,
+        &std::include_str!("../shaders/text/vert.glsl")).unwrap();
+    let text_fragment = compile_shader(
+        &context, WebGl2RenderingContext::FRAGMENT_SHADER,
+        &std::include_str!("../shaders/text/frag.glsl")).unwrap();
+    [(interface_vertex, interface_fragment), 
+     (track_vertex, track_fragment),
+     (text_vertex, text_fragment)]
 }
 
 pub fn load_buffer<T>(
@@ -85,12 +104,12 @@ pub fn load_buffer<T>(
     context.bind_buffer(buffer_target.websys_code(), Some(&gl_buffer));
 
     let set_attribute = |datatype: BufferDataType, name: &str, dim_len: usize| {
-    	let attribute_location = context.get_attrib_location(&program, &name);
+    	let attribute_location = context.get_attrib_location(&program, &name) as u32;
 	    context.vertex_attrib_pointer_with_i32(
-	        attribute_location as u32, 
+	        attribute_location, 
 	        dim_len.try_into().unwrap(), 
 	        datatype.websys_code(),  false, 0, 0);
-	    context.enable_vertex_attrib_array(attribute_location as u32);
+	    context.enable_vertex_attrib_array(attribute_location);
     };
 
 	match arg {
@@ -110,6 +129,63 @@ pub fn load_buffer<T>(
 		        .expect("Could not create vertex array object");
 		    context.bind_vertex_array(Some(&vao));
 			set_attribute(arg.datatype(), "position", dim_len);
+		},
+
+		BufferArg::Texture{ datatype, width, height, ref data } => {
+			set_attribute(datatype, "a_texCoord", buf.len());
+
+			let empty_buffer: [f32; 0] = [];
+
+			let texture_uniform_location = context.get_uniform_location(program, "u_image")
+				.expect("could not find u_image uniform");
+
+			load_buffer(
+				&empty_buffer, 
+				BufferArg::Uniform(
+					BufferDataType::Float, 
+					"u_image".to_string(), 
+					renderer::UNIFORM_IMAGE_IDX), 
+				context, 
+				program);
+			let texture = context.create_texture().expect("failed to create webgl texture");
+ 			
+			context.tex_parameteri(
+				WebGl2RenderingContext::TEXTURE_2D, 
+				WebGl2RenderingContext::TEXTURE_WRAP_S, 
+				WebGl2RenderingContext::CLAMP_TO_EDGE as i32);
+			context.tex_parameteri(
+				WebGl2RenderingContext::TEXTURE_2D, 
+				WebGl2RenderingContext::TEXTURE_WRAP_T, 
+				WebGl2RenderingContext::CLAMP_TO_EDGE as i32);
+			context.tex_parameteri(
+				WebGl2RenderingContext::TEXTURE_2D, 
+				WebGl2RenderingContext::TEXTURE_MIN_FILTER,
+				WebGl2RenderingContext::NEAREST as i32 );
+			context.tex_parameteri(
+				WebGl2RenderingContext::TEXTURE_2D, 
+				WebGl2RenderingContext::TEXTURE_MAG_FILTER,
+				WebGl2RenderingContext::NEAREST as i32);
+			// make unit 0 the active texture unit
+			// (i.e, the unit all other texture commands will affect.)
+			let texture_unit_number = 0;
+			context.uniform1ui(Some(&texture_uniform_location), texture_unit_number);
+			context.active_texture(WebGl2RenderingContext::TEXTURE0 + texture_unit_number);
+
+			// Bind texture to 'texture unit '0' 2D bind point
+			context.bind_texture(WebGl2RenderingContext::TEXTURE_2D, Some(&texture));
+
+			context.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_u8_array_and_src_offset(
+				WebGl2RenderingContext::TEXTURE_2D.try_into().unwrap(),
+				0,
+				WebGl2RenderingContext::LUMINANCE.try_into().unwrap(),
+				width.try_into().unwrap(),
+				height.try_into().unwrap(),
+				0,
+				WebGl2RenderingContext::LUMINANCE.try_into().unwrap(),
+				WebGl2RenderingContext::UNSIGNED_BYTE.try_into().unwrap(),
+				&data,
+				0,
+			);
 		},
 
 		BufferArg::ElementArray => {}, // nothing to do
@@ -170,3 +246,4 @@ pub fn link_program(
             .unwrap_or_else(|| String::from("Unknown error creating program object")))
     }
 }
+

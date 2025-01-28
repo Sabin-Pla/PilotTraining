@@ -115,7 +115,7 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
         &wgl_context, &game_context.track_shader);
 
     renderer::load_buffer(
-        &camera.to_buffer((aspect_x, aspect_y), (FIELD_OFFSET_X, 0.0)), 
+        &camera.to_buffer((aspect_x, aspect_y), (FIELD_OFFSET_X, 0.0)),
         renderer::BufferArg::Uniform(BufferDataType::Float, "u_camera".to_string(), renderer::UNIFORM_CAMERA_IDX), 
         &wgl_context, &game_context.track_shader);
     let track_spline_vertex_buffer = game.track_spline_vertex_buffer(aspect_x, aspect_y);
@@ -142,5 +142,6 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
     //alert(&format!("mouse {:?}", &mouse_draw.1));
     renderer::load_buffer(&mouse_draw.1, renderer::BufferArg::Vertexes(2), &wgl_context, &game_context.interface_shader);
 	wgl_context.draw_arrays(mouse_draw.0, 0, (mouse_draw.1.len() / 2) as i32);
+    draw_text(game_context);
 }
 

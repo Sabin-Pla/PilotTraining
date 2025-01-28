@@ -25,6 +25,7 @@ pub use stage::*;
 pub use interface::*;
 use game::*;
 
+pub use renderer::*;
 pub use game::QuadraticBezier;
 
 const GAME_ASPECT_X: f32  = 16.0;
@@ -212,16 +213,18 @@ fn start() -> Result<(), JsValue> {
 
     let base_shaders = renderer::initialize_base_shaders(context); 
 
-    let track_shader =  renderer::link_program(&context, 
-        &base_shaders[1].0, &base_shaders[1].1);
     let interface_shader = renderer::link_program(&context, 
         &base_shaders[0].0, &base_shaders[0].1);
-
+    let track_shader =  renderer::link_program(&context, 
+        &base_shaders[1].0, &base_shaders[1].1);
+    let text_shader = renderer::link_program(&context, 
+        &base_shaders[2].0, &base_shaders[2].1);
     
     let game_context = GameContext {
         wp: wp.clone(),
         track_shader: track_shader?,
         interface_shader: interface_shader?,
+        text_shader: text_shader?,
         input_handler: input_handler,
         aspect_ratio,
         screen_ratio,

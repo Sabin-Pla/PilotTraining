@@ -99,7 +99,7 @@ void main() {
     // after expanding and collecting like terms, equation for l2 is in the form of a cubic function
 
     // solve using cardano's method.
-    // graphing calculator demo: https://www.desmos.com/calculator/7tc0crnzai?lang=ja
+    // graphing calculator demo: https://www.desmos.com/calculator/7tc0crnzai
 
     vec2 p = (gl_FragCoord.xy / res.xy - (0.5, 0.5)) * 2.0; 
 

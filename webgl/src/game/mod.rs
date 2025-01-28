@@ -75,8 +75,14 @@ pub fn start_game_loop(mut game_context: GameContext, mut game: Game) {
 	let window = window.borrow();
     let window = window.clone();
 
-	let attr = wgl_context.get_context_attributes().unwrap();
+    wgl_context.blend_func(WebGl2RenderingContext::SRC_COLOR, WebGl2RenderingContext::DST_COLOR);
+    wgl_context.clear_color(0.0, 0.0, 0.0, 1.0);
+    wgl_context.enable(WebGl2RenderingContext::BLEND);
+
+	let mut attr = wgl_context.get_context_attributes().unwrap();
    	attr.set_antialias(true);
+    attr.preserve_drawing_buffer(true);
+   // attr.set_preserve_drawing_buffer(true);
 
     *outer_f.borrow_mut() = Some(Closure::wrap(Box::new(move || {
    	 	do_loop_iter(&mut game_context, &mut game);
@@ -101,8 +107,6 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
     let camera = game_context.camera.clone();
     let camera = camera.borrow();
 
-    
-    wgl_context.clear_color(0.0, 0.0, 0.0, 1.0);
     wgl_context.clear(WebGl2RenderingContext::COLOR_BUFFER_BIT);
 
     // render the track

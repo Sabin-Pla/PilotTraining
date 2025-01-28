@@ -157,8 +157,9 @@ pub fn load_buffer<T: std::clone::Clone + std::fmt::Debug>(
 				let new_data: &[f32] = &[
 					0.0_f32, 0.0, 
 					0.0, 1.0, 
+					1.0, 1.0,
 					1.0, 0.0, 
-					1.0, 1.0];
+					];
 				let new_data: &[T] = std::mem::transmute::<&[f32], &[T]>(new_data);
 
 				let buffer_js = js_array!(BufferDataType::Float, new_data);

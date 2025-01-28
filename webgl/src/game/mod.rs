@@ -75,13 +75,12 @@ pub fn start_game_loop(mut game_context: GameContext, mut game: Game) {
 	let window = window.borrow();
     let window = window.clone();
 
-    wgl_context.blend_func(WebGl2RenderingContext::SRC_COLOR, WebGl2RenderingContext::DST_COLOR);
+    wgl_context.blend_func(WebGl2RenderingContext::SRC_COLOR, WebGl2RenderingContext::SRC_COLOR);
     wgl_context.clear_color(0.0, 0.0, 0.0, 1.0);
-    wgl_context.enable(WebGl2RenderingContext::BLEND);
 
 	let mut attr = wgl_context.get_context_attributes().unwrap();
    	attr.set_antialias(true);
-    attr.preserve_drawing_buffer(true);
+    //attr.preserve_drawing_buffer(true);
    // attr.set_preserve_drawing_buffer(true);
 
     *outer_f.borrow_mut() = Some(Closure::wrap(Box::new(move || {
@@ -146,6 +145,8 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
     //alert(&format!("mouse {:?}", &mouse_draw.1));
     renderer::load_buffer(&mouse_draw.1, renderer::BufferArg::Vertexes(2), &wgl_context, &game_context.interface_shader);
 	wgl_context.draw_arrays(mouse_draw.0, 0, (mouse_draw.1.len() / 2) as i32);
+    wgl_context.enable(WebGl2RenderingContext::BLEND);
     draw_text(game_context);
+    wgl_context.disable(WebGl2RenderingContext::BLEND);
 }
 

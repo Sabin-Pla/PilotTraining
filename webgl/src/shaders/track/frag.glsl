@@ -294,6 +294,7 @@ void main() {
         if (margin <= edge_range) {
             outColor.xyz = outColor.xyz * (1.0 - ((edge_range - margin) / edge_range));
         }
+        outColor.w = 1.0;
         return;
     }
 

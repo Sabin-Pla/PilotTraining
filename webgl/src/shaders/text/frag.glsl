@@ -8,6 +8,10 @@ in vec2 v_texCoord;
 out vec4 outColor;
 
 void main() {
-   outColor.y = float(texture(u_image, v_texCoord).x)  / 255.0;
+   float alpha =  float(texture(u_image, v_texCoord).x)  / 255.0;
+   outColor.y = alpha;
+   if (alpha == 0.0) {
+      discard;
+   }
    outColor.w = 1.0;
 }

@@ -36,8 +36,14 @@ macro_rules! js_array {
 }
 
 pub enum BufferArg {
-	Attribute     (BufferDataType, usize, String),
-	Uniform       (BufferDataType, String, usize),
+	Attribute     {
+		datatype: BufferDataType, 
+		name: String,
+		dim_len: usize },
+	Uniform     {
+		datatype: BufferDataType, 
+		name: String,
+		idx: usize },
 	ElementArray,
 	Vertexes      (usize),
 	Texture       {  
@@ -50,19 +56,19 @@ pub enum BufferArg {
 impl BufferArg {
 	fn target(&self) -> BufferTarget {
 		match self {
-			Self::Attribute(..)|Self::Vertexes(..)|Self::Texture{ .. } => BufferTarget::ArrayBuffer,
-			Self::Uniform(..) => BufferTarget::UniformBuffer,
+			Self::Attribute { .. } | Self::Vertexes { .. } | Self::Texture { .. } => BufferTarget::ArrayBuffer,
+			Self::Uniform { .. } => BufferTarget::UniformBuffer,
 			Self::ElementArray => BufferTarget::ElementArrayBuffer
 		}
 	}
 
 	fn datatype(&self) -> BufferDataType {
 		match self {
-			Self::Attribute(datatype, ..) => *datatype,
-			Self::Uniform(datatype,   ..) => *datatype,
+			Self::Attribute { datatype, .. } => *datatype,
+			Self::Uniform { datatype,   .. } => *datatype,
 			Self::ElementArray => UnsignedInt,
 			Self::Vertexes(..) => Float,
-			Self::Texture{ datatype, .. } => *datatype
+			Self::Texture { datatype, .. } => *datatype
 		}
 	}
 }
@@ -103,16 +109,7 @@ pub fn load_buffer<T: std::clone::Clone + std::fmt::Debug>(
 	let buffer_target = arg.target();
     context.bind_buffer(buffer_target.websys_code(), Some(&gl_buffer));
 
-    let set_attribute = |datatype: BufferDataType, name: &str, dim_len: usize| {
-    	let attribute_location = context.get_attrib_location(&program, &name) as u32;
-	    context.vertex_attrib_pointer_with_i32(
-	        attribute_location, 
-	        dim_len.try_into().unwrap(), 
-	        datatype.websys_code(),  false, 0, 0);
-	    context.enable_vertex_attrib_array(attribute_location);
-    };
-
-    let bind_uniform = |datatype: BufferDataType, name: &str, idx: u32| { 
+    let bind_uniform = |name: &str, idx: u32| { 
     	let uniform_index = context.get_uniform_block_index(&program, &name);
 		context.uniform_block_binding(
 	        &program, uniform_index, idx);
@@ -120,78 +117,19 @@ pub fn load_buffer<T: std::clone::Clone + std::fmt::Debug>(
 	        WebGl2RenderingContext::UNIFORM_BUFFER, idx, Some(&gl_buffer));
     };
 
-    let create_vertex_buffer = || {
-    	let vao = context
-		        .create_vertex_array()
-		        .expect("Could not create vertex array object");
-		context.bind_vertex_array(Some(&vao));
-    };
-
 	match arg {
-		BufferArg::Attribute(datatype, dim_len, ref name) => set_attribute(datatype, name, dim_len),
+		BufferArg::Attribute { datatype,  ref name, dim_len} => 
+			set_attribute(context, program, datatype, name, dim_len),
 
-		BufferArg::Uniform(datatype, ref name, idx) => {
-			bind_uniform(datatype, name, idx  as u32)
-		},
+		BufferArg::Uniform { datatype, ref name, idx} => bind_uniform(name, idx  as u32),
 
 		BufferArg::Vertexes(dim_len) => {
-			create_vertex_buffer();
-			set_attribute(arg.datatype(), "position", dim_len);
+			create_vertex_buffer(context);
+			set_attribute(context, program, arg.datatype(), "position", dim_len);
 		},
 
 		BufferArg::Texture{ datatype, width, height, ref data } => {
-			// alert(format!("{:?}", &buf).as_str());
-			unsafe {
-				let buffer_js = js_array!(BufferDataType::Float, buf);
-	        	context.buffer_data_with_array_buffer_view(
-	        		WebGl2RenderingContext::ARRAY_BUFFER, &buffer_js, WebGl2RenderingContext::STATIC_DRAW);
-        	}
-        	create_vertex_buffer();
-			set_attribute(BufferDataType::Float, "a_position", 2);
-
-			let texture_unit_number = 0;
-			let tex_buffer = context.create_buffer().expect("Failed to create buf fer");
-
-		    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&tex_buffer));
-			unsafe {
-				let new_data: &[f32] = &[
-					0.0_f32, 0.0, 
-					0.0, 1.0, 
-					1.0, 1.0,
-					1.0, 0.0, 
-					];
-				let new_data: &[T] = std::mem::transmute::<&[f32], &[T]>(new_data);
-
-				let buffer_js = js_array!(BufferDataType::Float, new_data);
-				//alert(format!("{:?}", &buffer_js.to_string()).as_str());
-	        	context.buffer_data_with_array_buffer_view(
-	        		WebGl2RenderingContext::ARRAY_BUFFER, &buffer_js, WebGl2RenderingContext::STATIC_DRAW);
-        	}
-        	//create_vertex_buffer();
-			set_attribute(BufferDataType::Float, "a_texCoord", 2);
-
-        	let texture = context.create_texture().expect("failed to create webgl texture");
-			let texture_uniform_location = context.get_uniform_location(program, "u_image")
-				.expect("could not find u_image uniform");
-			context.active_texture(WebGl2RenderingContext::TEXTURE0 + texture_unit_number);
-			// Bind texture to 'texture unit '0' 2D bind point
-			context.bind_texture(WebGl2RenderingContext::TEXTURE_2D, Some(&texture));
-			
-			set_tex_param(context);		
-			context.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_u8_array_and_src_offset(
-				WebGl2RenderingContext::TEXTURE_2D.try_into().unwrap(),
-				0,
-				WebGl2RenderingContext::R8UI.try_into().unwrap(),
-				width.try_into().unwrap(),
-				height.try_into().unwrap(),
-				0,
-				WebGl2RenderingContext::RED_INTEGER.try_into().unwrap(),
-				WebGl2RenderingContext::UNSIGNED_BYTE.try_into().unwrap(),
-				&data,
-				0,
-			);
-
-			context.uniform1i(Some(&texture_uniform_location), texture_unit_number as i32);
+			bind_texture_buffers(buf, context, program, datatype, width, height, data);
 			return;
 		},
 
@@ -203,6 +141,87 @@ pub fn load_buffer<T: std::clone::Clone + std::fmt::Debug>(
         context.buffer_data_with_array_buffer_view(
         	buffer_target.websys_code(), &buffer_js, WebGl2RenderingContext::STATIC_DRAW);
     }
+}
+
+fn set_attribute(
+	context: &WebGl2RenderingContext, 
+	program: &WebGlProgram,
+	datatype: BufferDataType, 
+	name: &str, dim_len: usize) {
+
+	let attribute_location = context.get_attrib_location(&program, &name) as u32;
+    context.vertex_attrib_pointer_with_i32(
+        attribute_location, 
+        dim_len.try_into().unwrap(), 
+        datatype.websys_code(),  false, 0, 0);
+    context.enable_vertex_attrib_array(attribute_location);
+}
+
+fn create_vertex_buffer(context: &WebGl2RenderingContext) {
+	let vao = context
+	        .create_vertex_array()
+	        .expect("Could not create vertex array object");
+	context.bind_vertex_array(Some(&vao));
+}
+
+fn bind_texture_buffers<T: std::clone::Clone + std::fmt::Debug>(
+		buf: &[T], 
+		context: &WebGl2RenderingContext,
+		program: &WebGlProgram,
+		datatype: BufferDataType,
+		width: u32, 
+		height: u32,
+		texture_data: &Vec<u8>
+	) {
+
+	unsafe {
+		let buffer_js = js_array!(BufferDataType::Float, buf);
+    	context.buffer_data_with_array_buffer_view(
+    		WebGl2RenderingContext::ARRAY_BUFFER, &buffer_js, WebGl2RenderingContext::STATIC_DRAW);
+	}
+	create_vertex_buffer(context);
+	set_attribute(context, program, BufferDataType::Float, "a_position", 2);
+
+	let texture_unit_number = 0;
+	let tex_buffer = context.create_buffer().expect("Failed to create tex buf");
+
+    context.bind_buffer(WebGl2RenderingContext::ARRAY_BUFFER, Some(&tex_buffer));
+	unsafe {
+		let new_data: &[f32] = &[
+			0.0_f32, 0.0, 
+			0.0, 1.0, 
+			1.0, 1.0,
+			1.0, 0.0, 
+			];
+		let new_data: &[T] = std::mem::transmute::<&[f32], &[T]>(new_data);
+
+		let buffer_js = js_array!(BufferDataType::Float, new_data);
+    	context.buffer_data_with_array_buffer_view(
+    		WebGl2RenderingContext::ARRAY_BUFFER, &buffer_js, WebGl2RenderingContext::STATIC_DRAW);
+	}
+	set_attribute(context, program, BufferDataType::Float, "a_texCoord", 2);
+
+	let texture = context.create_texture().expect("failed to create webgl texture");
+	let texture_uniform_location = context.get_uniform_location(program, "u_image")
+		.expect("could not find u_image uniform");
+	context.active_texture(WebGl2RenderingContext::TEXTURE0 + texture_unit_number);
+	context.bind_texture(WebGl2RenderingContext::TEXTURE_2D, Some(&texture));
+	
+	set_tex_param(context);		
+	context.tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_u8_array_and_src_offset(
+		WebGl2RenderingContext::TEXTURE_2D.try_into().unwrap(),
+		0,
+		WebGl2RenderingContext::R8UI.try_into().unwrap(),
+		width.try_into().unwrap(),
+		height.try_into().unwrap(),
+		0,
+		WebGl2RenderingContext::RED_INTEGER.try_into().unwrap(),
+		WebGl2RenderingContext::UNSIGNED_BYTE.try_into().unwrap(),
+		&texture_data,
+		0,
+	);
+
+	context.uniform1i(Some(&texture_uniform_location), texture_unit_number as i32);
 }
 
 fn set_tex_param(context: &WebGl2RenderingContext) {

@@ -113,13 +113,29 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
 
     renderer::load_buffer(
         &[pixels_x, pixels_y, 0.0, 0.0], 
-        renderer::BufferArg::Uniform(
-            BufferDataType::Float, "u_resolution".to_string(), renderer::UNIFORM_RESOLUTION_IDX), 
+        renderer::BufferArg::Uniform {
+            datatype: BufferDataType::Float, 
+            name: "u_resolution".to_string(), 
+            idx: renderer::UNIFORM_RESOLUTION_IDX, 
+        },
+        &wgl_context, &game_context.track_shader);
+
+    renderer::load_buffer(
+        &[0.9_f32, 0.9, 0.9, 1.0], 
+        renderer::BufferArg::Attribute {
+            datatype: BufferDataType::Float, 
+            name: "a_color".to_string(), 
+            dim_len: 4
+        }, 
         &wgl_context, &game_context.track_shader);
 
     renderer::load_buffer(
         &camera.to_buffer((aspect_x, aspect_y), (FIELD_OFFSET_X, 0.0)),
-        renderer::BufferArg::Uniform(BufferDataType::Float, "u_camera".to_string(), renderer::UNIFORM_CAMERA_IDX), 
+        renderer::BufferArg::Uniform { 
+            datatype: BufferDataType::Float, 
+            name: "u_camera".to_string(), 
+            idx: renderer::UNIFORM_CAMERA_IDX 
+        }, 
         &wgl_context, &game_context.track_shader);
     let track_spline_vertex_buffer = game.track_spline_vertex_buffer(aspect_x, aspect_y);
     renderer::load_buffer(
@@ -127,10 +143,13 @@ fn do_loop_iter(game_context: &mut GameContext, game: &mut Game) {
     	renderer::BufferArg::Vertexes(2), 
     	&wgl_context, 
     	&game_context.track_shader);
-    // pad vec2 to vec4 cause webgl is dumb 
 	let track_nodes_uniform_buf: Vec<f32> = game.track_spline_uniform_buffer(aspect_x, aspect_y);
     renderer::load_buffer(&track_nodes_uniform_buf, 
-    	renderer::BufferArg::Uniform(BufferDataType::Float, "u_bezier_nodes".to_string(), renderer::UNIFORM_NODES_IDX), 
+    	renderer::BufferArg::Uniform {
+            datatype: BufferDataType::Float, 
+            name: "u_bezier_nodes".to_string(), 
+            idx: renderer::UNIFORM_NODES_IDX
+        }, 
     	&wgl_context, &game_context.track_shader);
     wgl_context.draw_arrays(
         WebGl2RenderingContext::TRIANGLES, 0,
